@@ -1,0 +1,15 @@
+# Secrets — NEVER commit these
+.env
+*.env
+!.env.example
+
+# Database dumps / backups
+*.sql
+*.dump
+backups/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
