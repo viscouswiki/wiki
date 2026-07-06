@@ -91,17 +91,42 @@ docker compose pull && docker compose up -d   # update to latest images
 
 ## Backups
 
-All wiki content is in Postgres, so back up the database:
+All wiki content is in Postgres. `scripts/backup.sh` dumps the database,
+optionally encrypts it, and uploads it to a **private Hugging Face dataset repo**
+(`HF_REPO`), keeping the newest `BACKUP_KEEP` copies.
+
+### Setup
+
+1. Create a **private** HF dataset repo (or let the script create it) and a
+   **write** access token → set `HF_REPO`, `HF_TOKEN` (and ideally
+   `BACKUP_PASSPHRASE`) in `.env`.
+2. Install the uploader dependency once on the VM:
+   ```bash
+   sudo apt-get install -y python3-venv
+   python3 -m venv ~/.hfvenv && ~/.hfvenv/bin/pip install -U huggingface_hub
+   ```
+3. Run it manually to test:
+   ```bash
+   ./scripts/backup.sh
+   ```
+4. Schedule daily via cron (`crontab -e`):
+   ```
+   0 3 * * * cd /home/ubuntu/viscouswiki && ./scripts/backup.sh >> /home/ubuntu/backup.log 2>&1
+   ```
+
+### Restore
 
 ```bash
-# Create a dump (gitignored by default)
-docker compose exec -T db pg_dump -U wiki wiki > backup-$(date +%F).sql
-
-# Restore into a fresh stack
-cat backup-YYYY-MM-DD.sql | docker compose exec -T db psql -U wiki -d wiki
+# 1. Download the backup file from the HF repo (web UI or huggingface-cli download)
+# 2. If encrypted (.enc), decrypt with your BACKUP_PASSPHRASE:
+openssl enc -d -aes-256-cbc -pbkdf2 -pass "pass:YOUR_PASSPHRASE" \
+  -in wiki-YYYYMMDD-HHMMSSZ.sql.gz.enc -out wiki.sql.gz
+# 3. Restore into the running stack:
+gunzip -c wiki.sql.gz | docker compose exec -T db psql -U wiki -d wiki
 ```
 
-Keep copies off the VM (e.g. download with `scp`).
+> The dump contains password hashes and the wiki's signing key — keep the repo
+> private and set `BACKUP_PASSPHRASE`.
 
 ## Security notes
 
