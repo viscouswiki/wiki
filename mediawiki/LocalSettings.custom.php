@@ -43,5 +43,12 @@ $wgLogos = [
 $wgEnableUploads    = true;
 $wgUseInstantCommons = false;
 
+// ---- Caching -------------------------------------------------------------
+// Keep the message cache in the DB (shared between the web server and CLI
+// maintenance scripts). With the default APCu message cache, edits made via
+// maintenance scripts (e.g. edit.php) don't invalidate the web server's copy,
+// so things like MediaWiki:Sidebar silently keep serving the old/default value.
+$wgMessageCacheType = CACHE_DB;
+
 // ---- Behind the Cloudflare tunnel (TLS terminated at the edge) -----------
 $wgServer = 'https://viscous.wiki';
