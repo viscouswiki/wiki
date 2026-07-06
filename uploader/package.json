@@ -1,0 +1,18 @@
+{
+  "name": "viscous-uploader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Presigned R2 video uploader gated by Wiki.js group membership",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.0",
+    "@aws-sdk/s3-request-presigner": "^3.658.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0"
+  }
+}

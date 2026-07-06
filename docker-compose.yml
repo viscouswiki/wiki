@@ -1,7 +1,12 @@
-# Viscous Wiki — Wiki.js + PostgreSQL + Cloudflare Tunnel
-# No host ports are published. cloudflared dials OUT to Cloudflare and
-# reaches Wiki.js over the internal Docker network (http://wiki:3000),
-# so the VM has zero inbound ports open.
+# Viscous Wiki — Wiki.js + PostgreSQL + R2 uploader + Cloudflare Tunnel
+#
+# Traffic flow:
+#   Cloudflare edge --tunnel--> cloudflared --> caddy --> wiki   (viscous.wiki)
+#                                                    \--> uploader (viscous.wiki/upload)
+#
+# No host ports are published. cloudflared dials OUT to Cloudflare, so the
+# VM has zero inbound ports open. Set the tunnel's public hostname service
+# to  http://caddy:80  (Caddy path-routes between the wiki and the uploader).
 
 services:
   db:
@@ -33,14 +38,54 @@ services:
       DB_PASS: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
     expose:
-      - "3000"   # internal only — reached by cloudflared, not published to the host
+      - "3000"
+
+  uploader:
+    build: ./uploader
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      BASE_PATH: /upload
+      # Reads Wiki.js signing cert + group id from the shared database:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      UPLOAD_GROUP: ${UPLOAD_GROUP:-Video Uploaders}
+      WIKI_AUDIENCE: ${WIKI_AUDIENCE:-urn:wiki.js}
+      WIKI_ISSUER: ${WIKI_ISSUER:-urn:wiki.js}
+      # R2 (S3-compatible) storage:
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_BUCKET: ${R2_BUCKET:-viscous-media}
+      R2_PUBLIC_BASE: ${R2_PUBLIC_BASE:-https://media.viscous.wiki}
+      R2_QUOTA_BYTES: ${R2_QUOTA_BYTES:-10000000000}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5368709120}
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - wiki
+      - uploader
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    expose:
+      - "80"
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     depends_on:
-      - wiki
+      - caddy
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
 

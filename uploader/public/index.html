@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viscous Wiki — Media Uploader</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171c22; --panel2: #1e242c; --border: #2a323c;
+    --text: #e6eaef; --muted: #9aa5b1; --accent: #4c8dff; --accent2: #3a6fd8;
+    --ok: #3fb950; --warn: #d29922; --danger: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; }
+  .banner.ok { background: rgba(63,185,80,.12); border: 1px solid rgba(63,185,80,.3); }
+  .banner.bad { background: rgba(248,81,73,.1); border: 1px solid rgba(248,81,73,.3); }
+  .banner a { color: var(--accent); }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 14px; }
+  /* storage bar */
+  .bar { height: 14px; background: var(--panel2); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), #63d178); transition: width .3s; }
+  .bar.mid > i { background: linear-gradient(90deg, var(--warn), #e3b341); }
+  .bar.high > i { background: linear-gradient(90deg, var(--danger), #ff6b62); }
+  .usage-text { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--muted); }
+  /* upload */
+  .drop { border: 2px dashed var(--border); border-radius: 10px; padding: 26px; text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--text); background: var(--panel2); }
+  .drop input { display: none; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 9px 16px; cursor: pointer; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { background: #33404f; color: #7d8794; cursor: not-allowed; }
+  .btn-ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(248,81,73,.4); }
+  .btn-danger:hover { background: rgba(248,81,73,.12); }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .progress { height: 8px; background: var(--panel2); border-radius: 6px; overflow: hidden; margin-top: 14px; display: none; }
+  .progress > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+  .msg { margin-top: 12px; font-size: 14px; }
+  .msg.err { color: var(--danger); }
+  .msg.ok { color: var(--ok); }
+  .embed-box { margin-top: 14px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: none; }
+  .embed-box code { display: block; white-space: pre-wrap; word-break: break-all; font-size: 13px; color: #bcd; margin-bottom: 10px; }
+  /* library */
+  .file { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--border); }
+  .file:first-child { border-top: 0; }
+  .thumb { width: 96px; height: 60px; border-radius: 6px; background: #000; object-fit: cover; flex: 0 0 auto; border: 1px solid var(--border); }
+  .thumb.placeholder { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 22px; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-meta { color: var(--muted); font-size: 13px; }
+  .file-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+  .empty { color: var(--muted); text-align: center; padding: 20px; }
+  .hidden { display: none !important; }
+  .spin { display:inline-block; width:14px; height:14px; border:2px solid var(--muted); border-top-color: transparent; border-radius:50%; animation: sp .7s linear infinite; vertical-align: middle; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Viscous Wiki — Media Uploader</h1>
+  <p class="sub">Upload videos & large media to R2, then paste the embed into any wiki page.</p>
+
+  <div id="banner" class="banner bad"><span class="spin"></span>&nbsp;Checking your wiki login…</div>
+
+  <div id="app" class="hidden">
+    <!-- Storage -->
+    <div class="panel">
+      <h2>Storage</h2>
+      <div id="bar" class="bar"><i id="barFill"></i></div>
+      <div class="usage-text">
+        <span id="usageText">—</span>
+        <span id="freeText"></span>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="panel">
+      <h2>Upload a file</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="video/*,image/*,audio/*">
+        <div id="dropText">Click to choose a file, or drag it here</div>
+      </label>
+      <div class="row" style="margin-top:14px">
+        <button class="btn-primary" id="uploadBtn" disabled>Upload</button>
+        <span id="selName" class="file-meta"></span>
+      </div>
+      <div class="progress" id="progress"><i id="progFill"></i></div>
+      <div class="msg" id="msg"></div>
+      <div class="embed-box" id="embedBox">
+        <code id="embedCode"></code>
+        <div class="row">
+          <button class="btn-ghost" id="copyBtn">Copy embed</button>
+          <a id="openLink" class="btn-ghost" target="_blank" rel="noopener" style="text-decoration:none">Open file ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library -->
+    <div class="panel">
+      <h2>Media library <span id="count" class="file-meta"></span></h2>
+      <div id="files"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = '__BASE_PATH__';
+const $ = (id) => document.getElementById(id);
+let selectedFile = null;
+let quotaBytes = 0, usedBytes = 0;
+
+function fmt(n){ if(n<1e6) return (n/1e3).toFixed(0)+' KB'; if(n<1e9) return (n/1e6).toFixed(1)+' MB'; return (n/1e9).toFixed(2)+' GB'; }
+function embedFor(url, type){
+  if(type && type.startsWith('image')) return '<img src="'+url+'" alt="">';
+  if(type && type.startsWith('audio')) return '<audio controls src="'+url+'"></audio>';
+  return '<video controls width="720" src="'+url+'"></video>';
+}
+function typeFromName(name){
+  const e = name.split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp','avif','svg'].includes(e)) return 'image/'+e;
+  if(['mp3','wav','ogg','m4a','flac'].includes(e)) return 'audio/'+e;
+  return 'video/'+e;
+}
+
+async function init(){
+  let me;
+  try { me = await fetch(BASE+'/api/me', {credentials:'include'}).then(r=>r.json()); }
+  catch(e){ return showBanner(false, 'Could not reach the uploader service.'); }
+
+  if(!me.authenticated){
+    return showBanner(false, 'You are not logged in. <a href="/login">Log in to the wiki</a>, then reload this page.');
+  }
+  if(!me.authorized){
+    return showBanner(false, 'Signed in as <b>'+ (me.name||me.email) +'</b>, but you are not in the <b>'+ me.group +'</b> group. Ask an admin for access.');
+  }
+  showBanner(true, 'Signed in as <b>'+ (me.name||me.email) +'</b> — you can upload and manage media.');
+  $('app').classList.remove('hidden');
+  wireUp();
+  await refreshStorage();
+}
+
+function showBanner(ok, html){
+  const b = $('banner');
+  b.className = 'banner ' + (ok ? 'ok' : 'bad');
+  b.innerHTML = html;
+}
+
+function wireUp(){
+  const drop = $('drop'), fileInput = $('file');
+  fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
+  ['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if(e.dataTransfer.files[0]) selectFile(e.dataTransfer.files[0]); });
+  $('uploadBtn').addEventListener('click', doUpload);
+  $('copyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText($('embedCode').textContent).then(()=>{ $('copyBtn').textContent='Copied!'; setTimeout(()=>$('copyBtn').textContent='Copy embed',1500); });
+  });
+}
+
+function selectFile(f){
+  selectedFile = f || null;
+  $('embedBox').style.display='none';
+  $('msg').textContent='';
+  if(!f){ $('selName').textContent=''; $('uploadBtn').disabled=true; return; }
+  const free = quotaBytes - usedBytes;
+  $('selName').textContent = f.name + ' (' + fmt(f.size) + ')';
+  if(f.size > free){
+    setMsg('err', 'This file ('+fmt(f.size)+') is larger than the free space ('+fmt(free)+'). Delete something first.');
+    $('uploadBtn').disabled = true;
+  } else {
+    $('uploadBtn').disabled = false;
+  }
+}
+
+function setMsg(kind, text){ const m=$('msg'); m.className='msg '+(kind||''); m.textContent=text; }
+
+async function doUpload(){
+  if(!selectedFile) return;
+  const f = selectedFile;
+  const contentType = f.type || typeFromName(f.name);
+  $('uploadBtn').disabled = true;
+  setMsg('', 'Preparing upload…');
+
+  let presign;
+  try {
+    const r = await fetch(BASE+'/api/presign', {
+      method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ filename: f.name, contentType, size: f.size })
+    });
+    presign = await r.json();
+    if(!r.ok) { setMsg('err', presign.error || 'Upload was rejected.'); $('uploadBtn').disabled=false; return; }
+  } catch(e){ setMsg('err', 'Could not start upload.'); $('uploadBtn').disabled=false; return; }
+
+  // Direct browser -> R2 PUT with progress
+  const prog = $('progress'), fill = $('progFill');
+  prog.style.display='block'; fill.style.width='0';
+  setMsg('', 'Uploading…');
+  try {
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', presign.uploadUrl);
+      xhr.setRequestHeader('Content-Type', presign.contentType);
+      xhr.upload.onprogress = e => { if(e.lengthComputable) fill.style.width = (e.loaded/e.total*100)+'%'; };
+      xhr.onload = () => (xhr.status>=200 && xhr.status<300) ? resolve() : reject(new Error('R2 returned HTTP '+xhr.status));
+      xhr.onerror = () => reject(new Error('Network error (check the R2 bucket CORS policy).'));
+      xhr.send(f);
+    });
+  } catch(e){
+    prog.style.display='none';
+    setMsg('err', 'Upload failed: '+e.message);
+    $('uploadBtn').disabled=false;
+    return;
+  }
+
+  prog.style.display='none';
+  setMsg('ok', 'Uploaded ✓');
+  // show embed snippet
+  const snippet = embedFor(presign.publicUrl, presign.contentType);
+  $('embedCode').textContent = snippet;
+  $('openLink').href = presign.publicUrl;
+  $('embedBox').style.display='block';
+  // reset picker + refresh library/usage
+  selectedFile = null; $('file').value=''; $('selName').textContent=''; $('uploadBtn').disabled=true;
+  await refreshStorage();
+}
+
+async function refreshStorage(){
+  let data;
+  try { const r = await fetch(BASE+'/api/storage', {credentials:'include'}); data = await r.json(); if(!r.ok) throw new Error(data.error); }
+  catch(e){ $('files').innerHTML = '<div class="empty">Could not load storage: '+(e.message||'')+'</div>'; return; }
+
+  quotaBytes = data.quotaBytes; usedBytes = data.usedBytes;
+  const pct = Math.min(100, usedBytes/quotaBytes*100);
+  $('barFill').style.width = pct+'%';
+  $('bar').className = 'bar' + (pct>90 ? ' high' : pct>70 ? ' mid' : '');
+  $('usageText').textContent = fmt(usedBytes) + ' of ' + fmt(quotaBytes) + ' used (' + pct.toFixed(0) + '%)';
+  $('freeText').textContent = fmt(Math.max(0, quotaBytes-usedBytes)) + ' free';
+  $('count').textContent = data.count ? '· '+data.count+' file'+(data.count>1?'s':'') : '';
+
+  // re-evaluate current selection against new free space
+  if(selectedFile) selectFile(selectedFile);
+
+  renderFiles(data.files || []);
+}
+
+function renderFiles(files){
+  const box = $('files');
+  if(!files.length){ box.innerHTML = '<div class="empty">No files yet.</div>'; return; }
+  box.innerHTML = '';
+  for(const f of files){
+    const type = typeFromName(f.name);
+    const el = document.createElement('div');
+    el.className = 'file';
+    let thumb;
+    if(type.startsWith('video')) thumb = '<video class="thumb" src="'+f.url+'#t=0.5" muted preload="metadata"></video>';
+    else if(type.startsWith('image')) thumb = '<img class="thumb" src="'+f.url+'" alt="">';
+    else thumb = '<div class="thumb placeholder">♪</div>';
+    el.innerHTML =
+      thumb +
+      '<div class="file-info"><div class="file-name" title="'+f.name+'">'+f.name+'</div>' +
+      '<div class="file-meta">'+fmt(f.size)+' · '+new Date(f.lastModified).toLocaleDateString()+'</div></div>' +
+      '<div class="file-actions">' +
+      '<button class="btn-ghost" data-embed>Copy embed</button>' +
+      '<button class="btn-danger" data-del>Delete</button></div>';
+    el.querySelector('[data-embed]').addEventListener('click', () => {
+      navigator.clipboard.writeText(embedFor(f.url, type)).then(ev=>{ const b=el.querySelector('[data-embed]'); b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy embed',1500); });
+    });
+    el.querySelector('[data-del]').addEventListener('click', () => deleteFile(f, el));
+    box.appendChild(el);
+  }
+}
+
+async function deleteFile(f, el){
+  if(!confirm('Delete "'+f.name+'"? This cannot be undone, and any wiki pages embedding it will break.')) return;
+  const btn = el.querySelector('[data-del]');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    const r = await fetch(BASE+'/api/delete', {
+      method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ key: f.key })
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || 'Delete failed');
+    await refreshStorage();
+  } catch(e){
+    alert('Could not delete: '+e.message);
+    btn.disabled = false; btn.textContent = 'Delete';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

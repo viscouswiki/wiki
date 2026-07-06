@@ -1,0 +1,16 @@
+# Internal reverse proxy (HTTP only — TLS is handled by Cloudflare).
+# Routes /upload* to the uploader; everything else to Wiki.js.
+# Keeping both on the SAME hostname (viscous.wiki) means the wiki's
+# `jwt` login cookie is sent to the uploader, so it can check group membership.
+:80 {
+	encode gzip
+
+	@upload path /upload /upload/*
+	handle @upload {
+		reverse_proxy uploader:8080
+	}
+
+	handle {
+		reverse_proxy wiki:3000
+	}
+}

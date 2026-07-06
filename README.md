@@ -10,11 +10,18 @@ are exposed on the server.
 | -------------- | ------------------------------ | ----------------------------------------------- |
 | `db`           | `postgres:16-alpine`           | Database (all wiki content lives here)          |
 | `wiki`         | `ghcr.io/requarks/wiki:2`      | Wiki.js app                                     |
-| `cloudflared`  | `cloudflare/cloudflared:latest`| Outbound tunnel → serves the wiki via Cloudflare |
+| `uploader`     | built from `./uploader`        | R2 media uploader at `/upload` (group-gated)    |
+| `caddy`        | `caddy:2-alpine`               | Path router: `/upload*` → uploader, else → wiki |
+| `cloudflared`  | `cloudflare/cloudflared:latest`| Outbound tunnel → serves everything via Cloudflare |
 
 ```
-Visitor ──HTTPS──> Cloudflare edge ──tunnel──> cloudflared ──> wiki:3000 ──> db
+Visitor ─HTTPS─> Cloudflare ─tunnel─> cloudflared ─> caddy ─┬─> wiki:3000 ─> db
+                                                            └─> uploader:8080 ─> R2
 ```
+
+> The tunnel's public hostname for `viscous.wiki` must point at **`http://caddy:80`**
+> (not `wiki:3000`), so Caddy can route `/upload` to the uploader and everything
+> else to the wiki on the same origin.
 
 The VM only makes an **outbound** connection to Cloudflare. There are no open
 inbound ports, no security-list rules, and no TLS certificates to manage.
@@ -104,10 +111,38 @@ Keep copies off the VM (e.g. download with `scp`).
   treat it like a password. Rotate it in the Zero Trust dashboard if leaked.
 - Wiki content is stored in the database; the `wiki` container is stateless.
 
-## Roadmap
+## Media uploader (R2)
 
-- **R2 media storage** — a Cloudflare R2 bucket + `media.<domain>` custom domain
-  for videos/large files (bypasses Cloudflare's 100 MB upload cap and video ToS).
-- **Video uploader** — a small upload page + presign endpoint that lets
-  authorized Wiki.js users push large videos straight to R2 and get an
-  embeddable link. Access gated by Wiki.js group membership.
+At **`https://viscous.wiki/upload`**, members of the Wiki.js **`Video Uploaders`**
+group can upload videos/large media straight to R2 (browser → R2 via presigned
+URL, bypassing Cloudflare's 100 MB proxy cap), see storage usage against the
+10 GB free tier, get an embeddable `<video>` snippet, and delete files.
+
+Access is enforced by verifying the visitor's Wiki.js `jwt` cookie against the
+wiki's own signing key and checking group membership — no separate login.
+
+### One-time setup
+
+1. **R2 bucket** `viscous-media` with a **custom domain** `media.viscous.wiki`.
+2. **R2 API token** (Object Read & Write, scoped to the bucket) → put the
+   Account ID / Access Key ID / Secret into `.env` (see `.env.example`).
+3. **Bucket CORS policy** (R2 → bucket → Settings → CORS) so the browser may PUT:
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://viscous.wiki"],
+       "AllowedMethods": ["PUT"],
+       "AllowedHeaders": ["content-type"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+4. **Tunnel:** set the `viscous.wiki` public hostname service to **`http://caddy:80`**.
+5. Create the **`Video Uploaders`** group in the Wiki.js admin panel and add members.
+
+### Embedding in a page
+
+Paste the copied snippet (e.g. `<video controls width="720" src="…"></video>`).
+If the wiki strips it, enable HTML in **Administration → Rendering → Markdown**
+(allow HTML), or link to the file directly.
