@@ -1,0 +1,10 @@
+/* ===== Viscous green accent for the Citizen skin =====
+ * Citizen builds its accent color from an OKLCH hue (modern browsers) with an
+ * HSL fallback, defined at :root. Shift the hue from blue (oklch 262 / hsl 220)
+ * to Viscous green and boost chroma for a toxic pop.
+ */
+:root {
+  --color-progressive-oklch__h: 145 !important;   /* OKLCH accent hue: blue -> green */
+  --color-progressive-oklch__c: 0.21 !important;  /* punchier toxic saturation      */
+  --color-progressive-hsl__h: 140 !important;     /* HSL fallback hue: blue -> green */
+}

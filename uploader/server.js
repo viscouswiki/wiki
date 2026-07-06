@@ -1,17 +1,19 @@
 'use strict'
 
 /*
- * Viscous Wiki — video uploader
+ * Viscous Wiki — media uploader
  *
  * Serves an upload/management page at BASE_PATH (default /upload) and issues
  * presigned R2 PUT URLs so the browser uploads large files DIRECTLY to R2 —
  * bypassing the Cloudflare 100 MB proxy cap and never touching this server
  * or the wiki.
  *
- * Access is gated by Wiki.js group membership: the browser sends the Wiki.js
- * `jwt` cookie (same-origin, since we live under viscous.wiki/upload), we
- * verify it with Wiki.js's own public signing key, and only act if the user
- * is in the configured group (default "Video Uploaders").
+ * Access is gated by MediaWiki group membership. Because the uploader lives
+ * under viscous.wiki/upload (same origin as the wiki), the visitor's MediaWiki
+ * session cookie is sent here; we forward it to MediaWiki's API
+ * (meta=userinfo&uiprop=groups) and only act if the user is logged in AND in
+ * the configured group (default "videouploader"). No shared secret needed —
+ * MediaWiki is the source of truth.
  *
  * Also: tracks total storage used vs. a quota (default 10 GB free tier),
  * refuses uploads that would exceed it, and lets users delete files.
@@ -21,9 +23,6 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const express = require('express')
-const cookieParser = require('cookie-parser')
-const jwt = require('jsonwebtoken')
-const { Pool } = require('pg')
 const {
   S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand
 } = require('@aws-sdk/client-s3')
@@ -32,9 +31,8 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 // ---- Config -------------------------------------------------------------
 const PORT = parseInt(process.env.PORT || '8080', 10)
 const BASE_PATH = (process.env.BASE_PATH || '/upload').replace(/\/+$/, '')
-const UPLOAD_GROUP = process.env.UPLOAD_GROUP || 'Video Uploaders'
-const WIKI_AUDIENCE = process.env.WIKI_AUDIENCE || 'urn:wiki.js'
-const WIKI_ISSUER = process.env.WIKI_ISSUER || 'urn:wiki.js'
+const UPLOAD_GROUP = process.env.UPLOAD_GROUP || 'videouploader'
+const MEDIAWIKI_API_URL = process.env.MEDIAWIKI_API_URL || 'http://mediawiki/api.php'
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
@@ -43,37 +41,11 @@ const R2_BUCKET = process.env.R2_BUCKET || 'viscous-media'
 const R2_PUBLIC_BASE = (process.env.R2_PUBLIC_BASE || 'https://media.viscous.wiki').replace(/\/+$/, '')
 const R2_PREFIX = 'uploads/'
 
-// Free tier is 10 GB. Default cap is a hair under 10e9*10 for a safety margin.
+// Free tier is 10 GB.
 const QUOTA_BYTES = parseInt(process.env.R2_QUOTA_BYTES || '10000000000', 10) // 10 GB (decimal)
 const MAX_UPLOAD_BYTES = parseInt(process.env.MAX_UPLOAD_BYTES || '5368709120', 10) // 5 GiB per file
 const PRESIGN_TTL = 900 // seconds (15 min)
 const ALLOWED_TYPE = /^(video|image|audio)\//
-
-// ---- Wiki.js auth material (loaded from the shared Postgres at startup) --
-const pool = new Pool({
-  host: process.env.PGHOST || 'db',
-  port: parseInt(process.env.PGPORT || '5432', 10),
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE
-})
-
-let PUBLIC_KEY = null
-let GROUP_ID = null
-
-async function loadWikiAuthConfig () {
-  const certRes = await pool.query("SELECT value FROM settings WHERE key = 'certs'")
-  if (!certRes.rows.length) throw new Error('Wiki.js certs not found — has the wiki setup wizard completed?')
-  let certVal = certRes.rows[0].value
-  if (typeof certVal === 'string') certVal = JSON.parse(certVal)
-  PUBLIC_KEY = certVal.public
-  if (!PUBLIC_KEY) throw new Error('No public key found in settings.certs')
-
-  const grpRes = await pool.query('SELECT id FROM groups WHERE name = $1', [UPLOAD_GROUP])
-  if (!grpRes.rows.length) throw new Error(`Wiki.js group "${UPLOAD_GROUP}" not found — create it in the admin panel.`)
-  GROUP_ID = grpRes.rows[0].id
-  console.log(`[uploader] auth ready — group "${UPLOAD_GROUP}" = id ${GROUP_ID}`)
-}
 
 // ---- R2 (S3-compatible) client ------------------------------------------
 const s3 = new S3Client({
@@ -122,31 +94,47 @@ function displayName (key) {
   return key.replace(R2_PREFIX, '').replace(/^[0-9a-f-]{36}-/i, '')
 }
 
-// ---- Auth ---------------------------------------------------------------
-function getUser (req) {
-  const token = (req.cookies && req.cookies.jwt) ||
-    (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, ''))
-  if (!token) return null
+// ---- Auth: ask MediaWiki who this cookie belongs to ---------------------
+async function getUser (req) {
+  const cookie = req.headers.cookie
+  if (!cookie) return null
   try {
-    return jwt.verify(token, PUBLIC_KEY, {
-      algorithms: ['RS256'], audience: WIKI_AUDIENCE, issuer: WIKI_ISSUER
+    const url = `${MEDIAWIKI_API_URL}?action=query&meta=userinfo&uiprop=groups&format=json`
+    const r = await fetch(url, {
+      headers: { cookie, 'user-agent': 'viscous-uploader' }
     })
+    if (!r.ok) return null
+    const data = await r.json()
+    const info = data && data.query && data.query.userinfo
+    // Anonymous users come back with id 0 and an `anon` marker.
+    if (!info || !info.id || info.anon !== undefined) return null
+    return {
+      id: info.id,
+      name: info.name,
+      groups: Array.isArray(info.groups) ? info.groups : []
+    }
   } catch (e) {
+    console.error('[uploader] MediaWiki auth check failed:', e.message)
     return null
   }
 }
 
 function isAuthorized (user) {
-  return !!(user && Array.isArray(user.groups) && user.groups.includes(GROUP_ID))
+  return !!(user && Array.isArray(user.groups) && user.groups.includes(UPLOAD_GROUP))
 }
 
-function requireUploader (req, res, next) {
-  const user = getUser(req)
-  if (!user) return res.status(401).json({ error: 'You are not logged in to the wiki. Log in at viscous.wiki first.' })
-  if (!isAuthorized(user)) return res.status(403).json({ error: `You must be in the "${UPLOAD_GROUP}" group to do this.` })
-  if (!hasR2()) return res.status(503).json({ error: 'Uploader is not fully configured (missing R2 credentials).' })
-  req.user = user
-  next()
+async function requireUploader (req, res, next) {
+  try {
+    const user = await getUser(req)
+    if (!user) return res.status(401).json({ error: 'You are not logged in to the wiki. Log in at viscous.wiki first.' })
+    if (!isAuthorized(user)) return res.status(403).json({ error: `You must be in the "${UPLOAD_GROUP}" group to do this.` })
+    if (!hasR2()) return res.status(503).json({ error: 'Uploader is not fully configured (missing R2 credentials).' })
+    req.user = user
+    next()
+  } catch (e) {
+    console.error('[uploader] auth error:', e.message)
+    res.status(500).json({ error: 'Auth check failed.' })
+  }
 }
 
 function sanitizeName (name) {
@@ -158,21 +146,19 @@ function sanitizeName (name) {
 // ---- App ----------------------------------------------------------------
 const app = express()
 app.set('trust proxy', true)
-app.use(cookieParser())
 app.use(express.json({ limit: '64kb' }))
 
 const router = express.Router()
 
 router.get('/healthz', (req, res) => res.json({ ok: true }))
 
-router.get('/api/me', (req, res) => {
-  const user = getUser(req)
+router.get('/api/me', async (req, res) => {
+  const user = await getUser(req)
   if (!user) return res.json({ authenticated: false, authorized: false, group: UPLOAD_GROUP })
   res.json({
     authenticated: true,
     authorized: isAuthorized(user),
     name: user.name,
-    email: user.email,
     group: UPLOAD_GROUP
   })
 })
@@ -263,7 +249,4 @@ router.get('/', (req, res) => res.type('html').send(renderPage()))
 app.use(BASE_PATH, router)
 app.get('/healthz', (req, res) => res.json({ ok: true }))
 
-// ---- Start --------------------------------------------------------------
-loadWikiAuthConfig()
-  .then(() => app.listen(PORT, () => console.log(`[uploader] listening on :${PORT} at ${BASE_PATH} (quota ${fmtBytes(QUOTA_BYTES)})`)))
-  .catch(err => { console.error('[uploader] failed to start:', err.message); process.exit(1) })
+app.listen(PORT, () => console.log(`[uploader] listening on :${PORT} at ${BASE_PATH} (auth via ${MEDIAWIKI_API_URL}, group "${UPLOAD_GROUP}", quota ${fmtBytes(QUOTA_BYTES)})`))

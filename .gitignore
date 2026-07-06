@@ -3,6 +3,12 @@
 *.env
 !.env.example
 
+# MediaWiki generated config (holds DB password + secret keys)
+/mediawiki/LocalSettings.php
+
+# Third-party skins (cloned via scripts/install-skins.sh)
+/skins/
+
 # Database dumps / backups
 *.sql
 *.dump

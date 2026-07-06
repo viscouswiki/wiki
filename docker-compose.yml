@@ -1,63 +1,58 @@
-# Viscous Wiki — Wiki.js + PostgreSQL + R2 uploader + Cloudflare Tunnel
+# Viscous Wiki — MediaWiki + MariaDB + R2 uploader + Cloudflare Tunnel
 #
 # Traffic flow:
-#   Cloudflare edge --tunnel--> cloudflared --> caddy --> wiki   (viscous.wiki)
-#                                                    \--> uploader (viscous.wiki/upload)
+#   Cloudflare edge --tunnel--> cloudflared --> caddy --> mediawiki  (viscous.wiki)
+#                                                    \--> uploader   (viscous.wiki/upload)
 #
-# No host ports are published. cloudflared dials OUT to Cloudflare, so the
-# VM has zero inbound ports open. Set the tunnel's public hostname service
-# to  http://caddy:80  (Caddy path-routes between the wiki and the uploader).
+# No host ports are published. cloudflared dials OUT to Cloudflare, so the VM
+# has zero inbound ports open. Point the tunnel's public hostname (viscous.wiki)
+# at  http://caddy:80  (Caddy path-routes between MediaWiki and the uploader).
 
 services:
   db:
-    image: postgres:16-alpine
+    image: mariadb:11
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MARIADB_DATABASE: ${MW_DB_NAME:-mediawiki}
+      MARIADB_USER: ${MW_DB_USER:-mediawiki}
+      MARIADB_PASSWORD: ${MW_DB_PASSWORD:?set MW_DB_PASSWORD in .env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 12
 
-  wiki:
-    image: ghcr.io/requarks/wiki:2
+  mediawiki:
+    image: mediawiki:1.43
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER}
-      DB_PASS: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
+    volumes:
+      - mw-images:/var/www/html/images
+      - ./mediawiki/LocalSettings.php:/var/www/html/LocalSettings.php:ro
+      - ./mediawiki/LocalSettings.custom.php:/var/www/html/LocalSettings.custom.php:ro
+      - ./mediawiki/shorturl.conf:/etc/apache2/conf-enabled/shorturl.conf:ro
+      - ./skins/Citizen:/var/www/html/skins/Citizen:ro
+      - ./skins/Fluent:/var/www/html/skins/Fluent:ro
     expose:
-      - "3000"
+      - "80"
 
   uploader:
     build: ./uploader
     restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
+      - mediawiki
     environment:
       PORT: 8080
       BASE_PATH: /upload
-      # Reads Wiki.js signing cert + group id from the shared database:
-      PGHOST: db
-      PGPORT: 5432
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: ${POSTGRES_DB}
-      UPLOAD_GROUP: ${UPLOAD_GROUP:-Video Uploaders}
-      WIKI_AUDIENCE: ${WIKI_AUDIENCE:-urn:wiki.js}
-      WIKI_ISSUER: ${WIKI_ISSUER:-urn:wiki.js}
+      # Auth is delegated to MediaWiki: the uploader forwards the visitor's
+      # session cookie to MediaWiki's API and checks group membership.
+      MEDIAWIKI_API_URL: ${MEDIAWIKI_API_URL:-http://mediawiki/api.php}
+      UPLOAD_GROUP: ${UPLOAD_GROUP:-videouploader}
       # R2 (S3-compatible) storage:
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
@@ -73,7 +68,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      - wiki
+      - mediawiki
       - uploader
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -91,3 +86,4 @@ services:
 
 volumes:
   db-data:
+  mw-images:
