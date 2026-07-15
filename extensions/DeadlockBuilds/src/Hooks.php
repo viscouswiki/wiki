@@ -114,10 +114,7 @@ class Hooks {
 				continue;
 			}
 			$catNum++;
-			$label = trim( (string)( $cat['name'] ?? '' ) );
-			if ( $label === '' ) {
-				$label = 'Group ' . $catNum;
-			}
+			$label = self::categoryLabel( (string)( $cat['name'] ?? '' ), $catNum );
 			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-name">' . htmlspecialchars( $label )
 				. '</div><div class="dlb-grid">' . $tiles . '</div></div>';
 		}
@@ -180,6 +177,28 @@ class Hooks {
 		}
 		$t .= '</div>';
 		return $t;
+	}
+
+	/**
+	 * Friendly label for an author's item-category name. Default game sections
+	 * arrive as localisation tokens like "#Citadel_HeroBuilds_EarlyGame"; turn
+	 * those into "Early Game". Custom names are used as-is.
+	 */
+	private static function categoryLabel( string $raw, int $n ): string {
+		$s = trim( $raw );
+		if ( $s === '' ) {
+			return 'Group ' . $n;
+		}
+		if ( $s[0] === '#' ) {
+			$s = preg_replace( '/^#(citadel_)?(herobuilds?_)?/i', '', $s );
+			$s = str_replace( '_', ' ', $s );
+			$s = preg_replace( '/(?<=[a-z0-9])(?=[A-Z])/', ' ', $s );
+			$s = trim( $s );
+			if ( $s === '' ) {
+				return 'Group ' . $n;
+			}
+		}
+		return $s;
 	}
 
 	private static function slotClass( string $slot ): string {
