@@ -22,6 +22,12 @@ wfLoadSkin( 'Citizen' );   // default; themed Viscous-green via MediaWiki:Common
 wfLoadSkin( 'Fluent' );    // alternative; users switch it in Preferences → Appearance
 $wgDefaultSkin = 'citizen';
 
+// ---- Extensions ----------------------------------------------------------
+// CategoryTree (bundled with MediaWiki core) — collapsible, AJAX-expandable
+// category trees. Adds the <categorytree> parser tag and expand arrows on
+// category pages / Special:Categories. No download or DB tables required.
+wfLoadExtension( 'CategoryTree' );
+
 // ---- "Video Uploaders" group (gates the R2 uploader at /upload) ----------
 // Members may use the media uploader. Assign people via Special:UserRights
 // (you, as a bureaucrat, can grant it). No special on-wiki permissions are
