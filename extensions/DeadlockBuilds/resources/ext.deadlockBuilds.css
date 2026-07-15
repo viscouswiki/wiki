@@ -172,7 +172,9 @@
 	height: 38px;
 	border-radius: 8px;
 	border: 2px solid #3a4a40;
-	background: #0d130f;
+	/* A lighter "slot" plate so both white line-art and dark icons (e.g.
+	   Splatter) stay visible, like the in-game ability bar. */
+	background: linear-gradient(180deg, #6a7a6f, #465650);
 	overflow: hidden;
 	cursor: help;
 }
@@ -262,8 +264,19 @@
 	color: #cbe6d5;
 }
 .deadlock-build ul.dlb-pop-stats li {
-	padding: 1px 0;
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+	padding: 2px 0;
 	border-bottom: 1px solid #1d2a22;
+}
+.deadlock-build .dlb-stat-label { color: #b9d8c6; }
+.deadlock-build .dlb-stat-val {
+	color: #39ff88;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	text-align: right;
 }
 .deadlock-build .dlb-pop-desc {
 	font-size: 0.82em;

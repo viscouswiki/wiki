@@ -258,13 +258,7 @@ class Hooks {
 		if ( $cost !== null ) {
 			$card .= '<div class="dlb-pop-cost">' . number_format( (int)$cost ) . ' souls</div>';
 		}
-		if ( $stats ) {
-			$card .= '<ul class="dlb-pop-stats">';
-			foreach ( $stats as $s ) {
-				$card .= '<li>' . htmlspecialchars( $s ) . '</li>';
-			}
-			$card .= '</ul>';
-		}
+		$card .= self::statList( $stats );
 		if ( $desc !== '' ) {
 			$card .= '<div class="dlb-pop-desc">' . htmlspecialchars( mb_strimwidth( $desc, 0, 260, '…' ) ) . '</div>';
 		}
@@ -301,13 +295,7 @@ class Hooks {
 		$h .= '<div><div class="dlb-pop-name">' . htmlspecialchars( $it['name'] ) . '</div>'
 			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) )
 			. ( $cost !== null ? ' · ' . number_format( (int)$cost ) . ' souls' : '' ) . '</div></div></div>';
-		if ( $stats ) {
-			$h .= '<ul class="dlb-pop-stats">';
-			foreach ( $stats as $s ) {
-				$h .= '<li>' . htmlspecialchars( $s ) . '</li>';
-			}
-			$h .= '</ul>';
-		}
+		$h .= self::statList( $stats );
 		if ( $desc !== '' ) {
 			$h .= '<div class="dlb-pop-desc">' . htmlspecialchars( $desc ) . '</div>';
 		}
@@ -346,6 +334,33 @@ class Hooks {
 			}
 		}
 		return $s;
+	}
+
+	/** Render a stat list with the label left and the value right-aligned. */
+	private static function statList( array $stats ): string {
+		if ( !$stats ) {
+			return '';
+		}
+		$li = '';
+		foreach ( $stats as $s ) {
+			list( $label, $value ) = self::splitStat( (string)$s );
+			$li .= '<li><span class="dlb-stat-label">' . htmlspecialchars( $label ) . '</span>'
+				. ( $value !== '' ? '<span class="dlb-stat-val">' . htmlspecialchars( $value ) . '</span>' : '' )
+				. '</li>';
+		}
+		return '<ul class="dlb-pop-stats">' . $li . '</ul>';
+	}
+
+	/** Split "Spirit Power +10" into [ "Spirit Power", "+10" ]. */
+	private static function splitStat( string $s ): array {
+		$pos = strrpos( $s, ' ' );
+		if ( $pos !== false ) {
+			$value = substr( $s, $pos + 1 );
+			if ( $value !== '' && ( $value[0] === '+' || $value[0] === '-' ) ) {
+				return [ substr( $s, 0, $pos ), $value ];
+			}
+		}
+		return [ $s, '' ];
 	}
 
 	private static function slotClass( string $slot ): string {
