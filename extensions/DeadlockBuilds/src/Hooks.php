@@ -43,6 +43,12 @@ class Hooks {
 			if ( !$build ) {
 				return self::notice( 'error', 'Deadlock build ' . htmlspecialchars( $id ) . ' could not be found.' );
 			}
+			// Title the page after the build's own name rather than the numeric
+			// id in the page name; the id stays visible in the build header/footer.
+			$name = trim( (string)( $build['name'] ?? '' ) );
+			if ( $name !== '' ) {
+				$parser->getOutput()->setDisplayTitle( htmlspecialchars( $name ) );
+			}
 			return self::renderBuild( $id, $build );
 		} catch ( \Throwable $e ) {
 			return self::notice( 'error', 'Could not load Deadlock build ' . htmlspecialchars( $id ) . ' right now.' );
@@ -203,9 +209,10 @@ class Hooks {
 		}
 		$h .= '<div class="dlb-head-text">';
 		$h .= '<div class="dlb-title">' . htmlspecialchars( $name ) . '</div>';
-		if ( $hero ) {
-			$h .= '<div class="dlb-hero">' . htmlspecialchars( $hero['name'] ) . '</div>';
-		}
+		$h .= '<div class="dlb-hero">'
+			. ( $hero ? htmlspecialchars( $hero['name'] ) . ' · ' : '' )
+			. '<span class="dlb-buildid">Build #' . htmlspecialchars( $id ) . '</span>'
+			. '</div>';
 		$h .= '</div></div>';
 
 		// Tags.

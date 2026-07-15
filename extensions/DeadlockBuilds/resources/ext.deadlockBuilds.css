@@ -39,6 +39,10 @@
 	font-size: 0.85em;
 	color: #8fae9c;
 }
+.deadlock-build .dlb-buildid {
+	font-variant-numeric: tabular-nums;
+	color: #6f8a7a;
+}
 
 /* Tags + description ---------------------------------------------------- */
 .deadlock-build .dlb-tags { margin-bottom: 10px; }
