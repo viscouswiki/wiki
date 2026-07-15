@@ -295,7 +295,10 @@ class Hooks {
 			}
 			$ab = $items[$aid];
 			$step++;
-			$steps .= '<div class="dlb-abil" title="' . self::attr( 'Point ' . $step . ': ' . $ab['name'] ) . '">';
+			$slug = preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string)( $ab['name'] ?? '' ) ) );
+			$slug = trim( (string)$slug, '-' );
+			$abilClass = 'dlb-abil' . ( $slug !== '' ? ' dlb-abil-' . $slug : '' );
+			$steps .= '<div class="' . htmlspecialchars( $abilClass ) . '" title="' . self::attr( 'Point ' . $step . ': ' . $ab['name'] ) . '">';
 			if ( !empty( $ab['image'] ) ) {
 				$steps .= '<img class="dlb-abil-icon" src="' . htmlspecialchars( $ab['image'] )
 					. '" alt="' . htmlspecialchars( $ab['name'] ) . '" width="34" height="34" loading="lazy">';

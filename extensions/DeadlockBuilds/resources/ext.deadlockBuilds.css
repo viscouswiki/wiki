@@ -206,6 +206,11 @@
 	height: 34px;
 	object-fit: cover;
 }
+/* Splatter ships as a dark goo icon; recolour it to white line-art like the
+   other abilities so it reads on the slot plate. */
+.deadlock-build .dlb-abil-splatter .dlb-abil-icon {
+	filter: brightness(0) invert(1);
+}
 .deadlock-build .dlb-abil-step {
 	position: absolute;
 	bottom: -1px;
