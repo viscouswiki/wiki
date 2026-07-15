@@ -90,8 +90,16 @@ class Hooks {
 				return true;
 			}
 
-			// Only create a page for a build that actually exists.
+			// Only create a page for a build that actually exists. If the build
+			// isn't in the community API, say so instead of a blank missing page.
 			if ( !self::fetchBuild( $buildId ) ) {
+				$out = $ctx->getOutput();
+				$out->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+				$out->addHTML( self::notice( 'warn',
+					'No Deadlock build with ID <strong>' . htmlspecialchars( $buildId )
+					. '</strong> was found in the deadlock-api.com database, so this page was not '
+					. 'auto-created. The build may be unpublished, too new to be indexed yet, or the '
+					. 'ID may be incorrect. Double-check the build\'s share link.' ) );
 				return true;
 			}
 
