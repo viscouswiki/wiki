@@ -38,6 +38,15 @@ wfLoadExtension( 'ParserFunctions' );
 // parser-cached, so the API is not called on normal page views.
 wfLoadExtension( 'DeadlockBuilds' );
 
+// Dedicated "Item:" namespace for Deadlock item pages (Item:Extra Spirit),
+// rendered by the <deadlockitem> tag. NS_ITEM is read by DeadlockBuilds to link
+// item tiles on build pages to these pages.
+define( 'NS_ITEM', 3000 );
+define( 'NS_ITEM_TALK', 3001 );
+$wgExtraNamespaces[NS_ITEM]      = 'Item';
+$wgExtraNamespaces[NS_ITEM_TALK] = 'Item_talk';
+$wgContentNamespaces[]           = NS_ITEM;
+
 // ---- "Video Uploaders" group (gates the R2 uploader at /upload) ----------
 // Members may use the media uploader. Assign people via Special:UserRights
 // (you, as a bureaucrat, can grant it). No special on-wiki permissions are

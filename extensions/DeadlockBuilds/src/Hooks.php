@@ -20,9 +20,10 @@ class Hooks {
 
 	private const DEFAULT_API = 'https://api.deadlock-api.com';
 
-	/** Register the <deadlockbuild> tag. */
+	/** Register the parser tags. */
 	public static function onParserFirstCallInit( Parser $parser ) {
 		$parser->setHook( 'deadlockbuild', [ self::class, 'renderTag' ] );
+		$parser->setHook( 'deadlockitem', [ self::class, 'renderItemTagEntry' ] );
 	}
 
 	/**
@@ -45,6 +46,33 @@ class Hooks {
 			return self::renderBuild( $id, $build );
 		} catch ( \Throwable $e ) {
 			return self::notice( 'error', 'Could not load Deadlock build ' . htmlspecialchars( $id ) . ' right now.' );
+		}
+	}
+
+	/**
+	 * <deadlockitem id="123"/> or <deadlockitem name="Extra Spirit"/> — render a
+	 * single item as a standalone card. Defaults to the page name so an item
+	 * page can simply contain <deadlockitem/>.
+	 */
+	public static function renderItemTagEntry( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		try {
+			$items = self::assetMap( 'items' );
+			$it = null;
+			if ( isset( $args['id'] ) && preg_replace( '/[^0-9]/', '', (string)$args['id'] ) !== '' ) {
+				$id = preg_replace( '/[^0-9]/', '', (string)$args['id'] );
+				$it = $items[$id] ?? null;
+			} else {
+				$name = isset( $args['name'] ) ? (string)$args['name'] : (string)$parser->getTitle()->getText();
+				$id = self::nameIndex()[strtolower( trim( $name ) )] ?? null;
+				$it = $id !== null ? ( $items[$id] ?? null ) : null;
+			}
+			if ( !$it ) {
+				return self::notice( 'error', 'Deadlock item not found.' );
+			}
+			return self::renderItemCard( $it );
+		} catch ( \Throwable $e ) {
+			return self::notice( 'error', 'Could not load that Deadlock item right now.' );
 		}
 	}
 
@@ -184,7 +212,12 @@ class Hooks {
 		$stats  = is_array( $it['stats'] ?? null ) ? $it['stats'] : [];
 		$desc   = (string)( $it['desc'] ?? '' );
 
-		$t  = '<div class="dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' ) . '">';
+		// Link the tile to the item's wiki page when the Item namespace exists.
+		$url = self::itemPageUrl( (string)( $it['name'] ?? '' ) );
+		$cls = 'dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' );
+		$t  = $url !== null
+			? '<a class="' . $cls . '" href="' . htmlspecialchars( $url ) . '">'
+			: '<div class="' . $cls . '">';
 
 		// Visible tile: icon + tier/active badges + name + cost.
 		$t .= '<div class="dlb-icon-wrap">';
@@ -237,8 +270,60 @@ class Hooks {
 		}
 		$card .= '</div>';
 
-		$t .= $card . '</div>';
+		$t .= $card . ( $url !== null ? '</a>' : '</div>' );
 		return $t;
+	}
+
+	/** Render a single item as a standalone card (used by the <deadlockitem> tag). */
+	private static function renderItemCard( array $it ): string {
+		$slot   = self::slotClass( $it['slot'] ?? '' );
+		$tier   = $it['tier'] ?? null;
+		$cost   = $it['cost'] ?? null;
+		$active = !empty( $it['active'] );
+		$stats  = is_array( $it['stats'] ?? null ) ? $it['stats'] : [];
+		$desc   = (string)( $it['desc'] ?? '' );
+
+		$meta = [];
+		if ( $tier !== null ) {
+			$meta[] = 'Tier ' . $tier;
+		}
+		if ( $slot !== 'other' ) {
+			$meta[] = ucfirst( $slot );
+		}
+		$meta[] = $active ? 'Active' : 'Passive';
+
+		$h  = '<div class="deadlock-build dlb-item-card dlb-slot-' . $slot . '">';
+		$h .= '<div class="dlb-pop-head">';
+		if ( !empty( $it['image'] ) ) {
+			$h .= '<img class="dlb-pop-icon dlb-slot-' . $slot . '" src="' . htmlspecialchars( $it['image'] )
+				. '" alt="' . htmlspecialchars( $it['name'] ) . '" width="56" height="56" loading="lazy">';
+		}
+		$h .= '<div><div class="dlb-pop-name">' . htmlspecialchars( $it['name'] ) . '</div>'
+			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) )
+			. ( $cost !== null ? ' · ' . number_format( (int)$cost ) . ' souls' : '' ) . '</div></div></div>';
+		if ( $stats ) {
+			$h .= '<ul class="dlb-pop-stats">';
+			foreach ( $stats as $s ) {
+				$h .= '<li>' . htmlspecialchars( $s ) . '</li>';
+			}
+			$h .= '</ul>';
+		}
+		if ( $desc !== '' ) {
+			$h .= '<div class="dlb-pop-desc">' . htmlspecialchars( $desc ) . '</div>';
+		}
+		$h .= '</div>';
+		return $h;
+	}
+
+	/** Local URL of the wiki page for an item, or null if the Item namespace
+	 * isn't configured. */
+	private static function itemPageUrl( string $name ): ?string {
+		$ns = defined( 'NS_ITEM' ) ? NS_ITEM : (int)self::config( 'DeadlockBuildsItemNamespace', 0 );
+		if ( $ns <= 0 ) {
+			return null;
+		}
+		$title = \Title::makeTitleSafe( $ns, $name );
+		return $title ? $title->getLinkURL() : null;
 	}
 
 	/**
@@ -357,6 +442,31 @@ class Hooks {
 					}
 				}
 				return $map;
+			}
+		);
+		return is_array( $value ) ? $value : [];
+	}
+
+	/** Cached lowercase-name => id index for shoppable items (for <deadlockitem name=>). */
+	private static function nameIndex(): array {
+		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
+		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
+		$value = $cache->getWithSetCallback(
+			$cache->makeKey( 'deadlockbuilds-nameindex', 'v4' ),
+			$ttl,
+			static function ( $old, &$setTtl ) {
+				$items = self::assetMap( 'items' );
+				if ( !$items ) {
+					$setTtl = 60;
+					return [];
+				}
+				$idx = [];
+				foreach ( $items as $id => $it ) {
+					if ( ( $it['type'] ?? '' ) === 'upgrade' && !empty( $it['name'] ) ) {
+						$idx[strtolower( trim( $it['name'] ) )] = $id;
+					}
+				}
+				return $idx;
 			}
 		);
 		return is_array( $value ) ? $value : [];

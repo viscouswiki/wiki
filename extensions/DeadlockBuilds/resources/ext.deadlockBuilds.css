@@ -271,6 +271,21 @@
 	line-height: 1.4;
 }
 
+/* Linked tiles + standalone item card ----------------------------------- */
+.deadlock-build a.dlb-tile,
+.deadlock-build a.dlb-tile:hover,
+.deadlock-build a.dlb-tile:visited {
+	text-decoration: none;
+	color: inherit;
+}
+.deadlock-build.dlb-item-card {
+	max-width: 400px;
+}
+.deadlock-build.dlb-item-card .dlb-pop-icon {
+	width: 56px;
+	height: 56px;
+}
+
 /* Footer + legend ------------------------------------------------------- */
 .deadlock-build .dlb-foot {
 	margin-top: 14px;
