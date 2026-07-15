@@ -103,14 +103,42 @@ class Hooks {
 				return true;
 			}
 
-			$text = "<deadlockbuild id=\"$buildId\" />\n\n[[Category:Builds]]";
+			$sysUser = \User::newSystemUser( 'DeadlockBuilds', [ 'steal' => true ] ) ?: $user;
+			$base = "<deadlockbuild id=\"$buildId\" />\n\n[[Category:Builds]]";
+
+			$visitedCreated = false;
 			if ( $isMeta ) {
-				$text .= "\n[[Category:Meta builds]]";
+				// Keep a permanent canonical page at Builds/<id>. Meta pages are
+				// disposable as the game's meta shifts, but the build record stays.
+				$canon = \Title::newFromText( "Builds/$buildId" );
+				if ( $canon && !$canon->exists() && !$canon->isDeletedQuick() ) {
+					self::createBuildPage( $services, $canon, $sysUser, $base );
+				}
+				$visitedCreated = self::createBuildPage(
+					$services, $title, $sysUser, $base . "\n[[Category:Meta builds]]" );
+			} else {
+				// The visited title is itself the canonical Builds/<id> page.
+				$visitedCreated = self::createBuildPage( $services, $title, $sysUser, $base );
 			}
 
+			if ( $visitedCreated ) {
+				$ctx->getOutput()->redirect( $title->getFullURL() );
+				return false; // suppress the default "no such page" output
+			}
+		} catch ( \Throwable $e ) {
+			// Fall through to the normal missing-page behaviour.
+		}
+		return true;
+	}
+
+	/** Create a build page with the given wikitext; returns whether it saved. */
+	private static function createBuildPage( $services, \Title $title, $performer, string $text ): bool {
+		try {
+			if ( $title->exists() ) {
+				return false;
+			}
 			$page = $services->getWikiPageFactory()->newFromTitle( $title );
-			$sysUser = \User::newSystemUser( 'DeadlockBuilds', [ 'steal' => true ] );
-			$updater = $page->newPageUpdater( $sysUser ?: $user );
+			$updater = $page->newPageUpdater( $performer );
 			$updater->setContent(
 				\MediaWiki\Revision\SlotRecord::MAIN,
 				\ContentHandler::makeContent( $text, $title )
@@ -119,14 +147,10 @@ class Hooks {
 				\CommentStoreComment::newUnsavedComment( 'Auto-create Deadlock build page' ),
 				EDIT_NEW
 			);
-			if ( $updater->wasSuccessful() ) {
-				$ctx->getOutput()->redirect( $title->getFullURL() );
-				return false; // suppress the default "no such page" output
-			}
+			return $updater->wasSuccessful();
 		} catch ( \Throwable $e ) {
-			// Fall through to the normal missing-page behaviour.
+			return false;
 		}
-		return true;
 	}
 
 	/**
