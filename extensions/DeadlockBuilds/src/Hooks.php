@@ -245,15 +245,17 @@ class Hooks {
 					// A hero ability, not a shop item — belongs in the ability row.
 					continue;
 				}
-				$tiles .= self::itemTile( $it );
+				$tiles .= self::itemTile( $it, $mod['annotation'] ?? null );
 			}
 			if ( $tiles === '' ) {
 				continue;
 			}
 			$catNum++;
 			$label = self::categoryLabel( (string)( $cat['name'] ?? '' ), $catNum );
-			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-name">' . htmlspecialchars( $label )
-				. '</div><div class="dlb-grid">' . $tiles . '</div></div>';
+			$catDesc = self::noteText( (string)( $cat['description'] ?? '' ) );
+			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-name">' . htmlspecialchars( $label ) . '</div>'
+				. ( $catDesc !== '' ? '<div class="dlb-cat-desc">' . htmlspecialchars( $catDesc ) . '</div>' : '' )
+				. '<div class="dlb-grid">' . $tiles . '</div></div>';
 		}
 
 		if ( $catHtml !== '' ) {
@@ -307,14 +309,18 @@ class Hooks {
 			. '<div class="dlb-abil-seq">' . $steps . '</div></div>';
 	}
 
-	/** Render one item as an icon tile with tier badge, cost and a rich hover card. */
-	private static function itemTile( array $it ): string {
+	/**
+	 * Render one item as an icon tile with tier badge, cost and a rich hover
+	 * card. $annotation is the build creator's per-item note, if any.
+	 */
+	private static function itemTile( array $it, ?string $annotation = null ): string {
 		$slot   = self::slotClass( $it['slot'] ?? '' );
 		$tier   = $it['tier'] ?? null;
 		$cost   = $it['cost'] ?? null;
 		$active = !empty( $it['active'] );
 		$stats  = is_array( $it['stats'] ?? null ) ? $it['stats'] : [];
 		$desc   = (string)( $it['desc'] ?? '' );
+		$note   = self::noteText( (string)( $annotation ?? '' ) );
 
 		// Link the tile to the item's wiki page when the Item namespace exists.
 		$url = self::itemPageUrl( (string)( $it['name'] ?? '' ) );
@@ -334,6 +340,9 @@ class Hooks {
 		}
 		if ( $active ) {
 			$t .= '<span class="dlb-act" title="Active item">A</span>';
+		}
+		if ( $note !== '' ) {
+			$t .= '<span class="dlb-note" title="Build note — hover for details">&#9998;</span>';
 		}
 		$t .= '</div>';
 		$t .= '<div class="dlb-tname">' . htmlspecialchars( $it['name'] ) . '</div>';
@@ -361,6 +370,9 @@ class Hooks {
 			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) ) . '</div></div></div>';
 		if ( $cost !== null ) {
 			$card .= '<div class="dlb-pop-cost">' . number_format( (int)$cost ) . ' souls</div>';
+		}
+		if ( $note !== '' ) {
+			$card .= '<div class="dlb-pop-note">' . htmlspecialchars( $note ) . '</div>';
 		}
 		$card .= self::statList( $stats );
 		if ( $desc !== '' ) {
@@ -465,6 +477,12 @@ class Hooks {
 			}
 		}
 		return [ $s, '' ];
+	}
+
+	/** Clean a creator note/description; returns '' if empty or purely decorative. */
+	private static function noteText( string $s ): string {
+		$s = trim( $s );
+		return ( $s !== '' && preg_match( '/\p{L}/u', $s ) ) ? $s : '';
 	}
 
 	private static function slotClass( string $slot ): string {

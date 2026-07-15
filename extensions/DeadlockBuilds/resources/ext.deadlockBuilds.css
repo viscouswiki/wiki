@@ -77,6 +77,13 @@
 	color: #8fae9c;
 	margin-bottom: 10px;
 }
+.deadlock-build .dlb-cat-desc {
+	font-size: 0.86em;
+	font-style: italic;
+	color: #a7c6b4;
+	margin: -6px 0 10px;
+	line-height: 1.4;
+}
 .deadlock-build .dlb-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
@@ -140,6 +147,19 @@
 	color: #0d130f;
 	background: #39ff88;
 	border-bottom-right-radius: 6px;
+}
+.deadlock-build .dlb-note {
+	position: absolute;
+	top: -1px;
+	right: -1px;
+	width: 15px;
+	height: 15px;
+	font-size: 10px;
+	line-height: 15px;
+	text-align: center;
+	color: #0d130f;
+	background: #cbe6d5;
+	border-bottom-left-radius: 6px;
 }
 .deadlock-build .dlb-tname {
 	font-size: 0.72em;
@@ -255,6 +275,17 @@
 	font-size: 0.82em;
 	color: #cdb968;
 	margin-bottom: 6px;
+}
+.deadlock-build .dlb-pop-note {
+	font-size: 0.84em;
+	color: #eaf6ee;
+	background: #14231a;
+	border-left: 3px solid #39ff88;
+	border-radius: 4px;
+	padding: 5px 8px;
+	margin-bottom: 6px;
+	line-height: 1.4;
+	white-space: normal;
 }
 .deadlock-build ul.dlb-pop-stats {
 	list-style: none;
