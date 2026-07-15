@@ -2,12 +2,12 @@
 /**
  * DeadlockBuilds — <deadlockbuild id="..."/> parser tag.
  *
- * Renders a Deadlock build (hero portrait + item build order as an icon grid
- * with tiers, costs and stat tooltips) fetched from the deadlock-api.com
- * community API. All network results are cached in the main WAN object cache so
- * page views don't hammer the API, and every failure mode degrades to a small
- * inline notice rather than a fatal — a broken build must never take the wiki
- * down.
+ * Renders a Deadlock build (hero portrait, ability leveling order, and the item
+ * build order as an icon grid with rich hover cards) fetched from the
+ * deadlock-api.com community API. All network results are cached in the main
+ * WAN object cache so page views don't hammer the API, and every failure mode
+ * degrades to a small inline notice rather than a fatal — a broken build must
+ * never take the wiki down.
  */
 
 namespace MediaWiki\Extension\DeadlockBuilds;
@@ -89,11 +89,12 @@ class Hooks {
 		}
 
 		if ( $desc !== '' ) {
-			// Strip literal newlines (keep the <br>) so MediaWiki's block parser
-			// doesn't wrap fragments of our output in <p> tags.
 			$descHtml = str_replace( "\n", '', nl2br( htmlspecialchars( mb_strimwidth( $desc, 0, 400, '…' ) ) ) );
 			$h .= '<div class="dlb-desc">' . $descHtml . '</div>';
 		}
+
+		// Ability leveling order.
+		$h .= self::renderAbilityOrder( $build, $items );
 
 		// Item build order — the author's own categories, in order, as icon tiles.
 		$cats = $build['details']['mod_categories'] ?? [];
@@ -105,10 +106,14 @@ class Hooks {
 			foreach ( $mods as $mod ) {
 				$aid = $mod['ability_id'] ?? null;
 				if ( $aid === null || !isset( $items[$aid] ) ) {
-					// Not a shop item (e.g. a hero ability point) — skip in v1.
 					continue;
 				}
-				$tiles .= self::itemTile( $items[$aid] );
+				$it = $items[$aid];
+				if ( ( $it['type'] ?? '' ) === 'ability' ) {
+					// A hero ability, not a shop item — belongs in the ability row.
+					continue;
+				}
+				$tiles .= self::itemTile( $it );
 			}
 			if ( $tiles === '' ) {
 				continue;
@@ -141,24 +146,47 @@ class Hooks {
 		return $h;
 	}
 
-	/** Render one item as an icon tile with tier badge, cost and a stat tooltip. */
+	/** Render the ability leveling order as an ordered row of ability icons. */
+	private static function renderAbilityOrder( array $build, array $items ): string {
+		$changes = $build['details']['ability_order']['currency_changes'] ?? null;
+		if ( !is_array( $changes ) || !count( $changes ) ) {
+			return '';
+		}
+		$steps = '';
+		$step = 0;
+		foreach ( $changes as $c ) {
+			$aid = $c['ability_id'] ?? null;
+			if ( $aid === null || !isset( $items[$aid] ) ) {
+				continue;
+			}
+			$ab = $items[$aid];
+			$step++;
+			$steps .= '<div class="dlb-abil" title="' . self::attr( 'Point ' . $step . ': ' . $ab['name'] ) . '">';
+			if ( !empty( $ab['image'] ) ) {
+				$steps .= '<img class="dlb-abil-icon" src="' . htmlspecialchars( $ab['image'] )
+					. '" alt="' . htmlspecialchars( $ab['name'] ) . '" width="34" height="34" loading="lazy">';
+			}
+			$steps .= '<span class="dlb-abil-step">' . $step . '</span></div>';
+		}
+		if ( $steps === '' ) {
+			return '';
+		}
+		return '<div class="dlb-cat dlb-ability-order"><div class="dlb-cat-name">Ability Leveling Order</div>'
+			. '<div class="dlb-abil-seq">' . $steps . '</div></div>';
+	}
+
+	/** Render one item as an icon tile with tier badge, cost and a rich hover card. */
 	private static function itemTile( array $it ): string {
 		$slot   = self::slotClass( $it['slot'] ?? '' );
 		$tier   = $it['tier'] ?? null;
 		$cost   = $it['cost'] ?? null;
 		$active = !empty( $it['active'] );
 		$stats  = is_array( $it['stats'] ?? null ) ? $it['stats'] : [];
+		$desc   = (string)( $it['desc'] ?? '' );
 
-		$tip = $it['name'];
-		if ( $tier !== null ) {
-			$tip .= "\nTier $tier" . ( $active ? ' · Active' : '' );
-		}
-		if ( $stats ) {
-			$tip .= "\n" . implode( "\n", $stats );
-		}
+		$t  = '<div class="dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' ) . '">';
 
-		$t  = '<div class="dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' )
-			. '" title="' . self::attr( $tip ) . '">';
+		// Visible tile: icon + tier/active badges + name + cost.
 		$t .= '<div class="dlb-icon-wrap">';
 		if ( !empty( $it['image'] ) ) {
 			$t .= '<img class="dlb-icon" src="' . htmlspecialchars( $it['image'] )
@@ -175,7 +203,41 @@ class Hooks {
 		if ( $cost !== null ) {
 			$t .= '<div class="dlb-tcost">' . number_format( (int)$cost ) . '</div>';
 		}
-		$t .= '</div>';
+
+		// Hover card (shown via CSS on tile hover).
+		$meta = [];
+		if ( $tier !== null ) {
+			$meta[] = 'Tier ' . $tier;
+		}
+		if ( $slot !== 'other' ) {
+			$meta[] = ucfirst( $slot );
+		}
+		$meta[] = $active ? 'Active' : 'Passive';
+
+		$card  = '<div class="dlb-pop">';
+		$card .= '<div class="dlb-pop-head">';
+		if ( !empty( $it['image'] ) ) {
+			$card .= '<img class="dlb-pop-icon dlb-slot-' . $slot . '" src="' . htmlspecialchars( $it['image'] )
+				. '" alt="" width="40" height="40" loading="lazy">';
+		}
+		$card .= '<div><div class="dlb-pop-name">' . htmlspecialchars( $it['name'] ) . '</div>'
+			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) ) . '</div></div></div>';
+		if ( $cost !== null ) {
+			$card .= '<div class="dlb-pop-cost">' . number_format( (int)$cost ) . ' souls</div>';
+		}
+		if ( $stats ) {
+			$card .= '<ul class="dlb-pop-stats">';
+			foreach ( $stats as $s ) {
+				$card .= '<li>' . htmlspecialchars( $s ) . '</li>';
+			}
+			$card .= '</ul>';
+		}
+		if ( $desc !== '' ) {
+			$card .= '<div class="dlb-pop-desc">' . htmlspecialchars( mb_strimwidth( $desc, 0, 260, '…' ) ) . '</div>';
+		}
+		$card .= '</div>';
+
+		$t .= $card . '</div>';
 		return $t;
 	}
 
@@ -244,7 +306,8 @@ class Hooks {
 
 	/**
 	 * Build a trimmed id => data map for an asset kind, cached for a day:
-	 *   items      => id => {name, cost, slot, tier, active, image, stats[]}
+	 *   items      => id => {name, cost, slot, tier, active, image, stats[], desc, type}
+	 *                 (includes shop items AND abilities from the same fetch)
 	 *   heroes     => id => {name, image}
 	 *   build-tags => id => {name}
 	 */
@@ -252,7 +315,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v3' ),
+			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v4' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $kind ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -268,14 +331,19 @@ class Hooks {
 						continue;
 					}
 					if ( $kind === 'items' ) {
+						// Shop items use shop_image; abilities use image.
+						$img = $row['shop_image_webp'] ?? $row['shop_image']
+							?? $row['image_webp'] ?? $row['image'] ?? '';
 						$map[$row['id']] = [
 							'name'   => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
 							'cost'   => $row['cost'] ?? null,
 							'slot'   => (string)( $row['item_slot_type'] ?? '' ),
 							'tier'   => $row['item_tier'] ?? null,
 							'active' => !empty( $row['is_active_item'] ),
-							'image'  => (string)( $row['shop_image_webp'] ?? $row['shop_image'] ?? '' ),
+							'image'  => (string)$img,
 							'stats'  => self::itemStats( $row ),
+							'desc'   => self::itemDesc( $row ),
+							'type'   => (string)( $row['type'] ?? '' ),
 						];
 					} elseif ( $kind === 'heroes' ) {
 						$imgs = is_array( $row['images'] ?? null ) ? $row['images'] : [];
@@ -304,10 +372,31 @@ class Hooks {
 					continue;
 				}
 				$bonus = $p['bonus'] ?? null;
-				$out[] = self::statLabel( (string)$name ) . ( $bonus !== null && $bonus !== '' ? ' +' . $bonus : '' );
+				$suffix = '';
+				if ( $bonus !== null && $bonus !== '' ) {
+					$b = (string)$bonus;
+					// Negative values keep their sign; positive get a leading +.
+					$suffix = ' ' . ( $b[0] === '-' ? $b : '+' . $b );
+				}
+				$out[] = self::statLabel( (string)$name ) . $suffix;
 			}
 		}
 		return $out;
+	}
+
+	/** Plain-text description from an item's structured description dict. */
+	private static function itemDesc( array $row ): string {
+		$dd = $row['description'] ?? null;
+		if ( !is_array( $dd ) ) {
+			return '';
+		}
+		$parts = [];
+		foreach ( [ 'passive', 'active', 'innate' ] as $k ) {
+			if ( !empty( $dd[$k] ) ) {
+				$parts[] = trim( strip_tags( (string)$dd[$k] ) );
+			}
+		}
+		return trim( implode( ' ', array_filter( $parts ) ) );
 	}
 
 	/** Friendly label for a Deadlock stat property name. */
@@ -331,7 +420,7 @@ class Hooks {
 		if ( isset( $map[$name] ) ) {
 			return $map[$name];
 		}
-		// Fallback: de-camelCase and tidy ("BonusClipSizePercent" -> "Bonus Clip Size %").
+		// Fallback: de-camelCase and tidy ("BonusClipSizePercent" -> "Clip Size %").
 		$s = preg_replace( '/(?<=[a-z0-9])(?=[A-Z])/', ' ', $name );
 		$s = str_replace( [ 'Percent', 'Bonus ' ], [ '%', '' ], $s );
 		return trim( $s );
