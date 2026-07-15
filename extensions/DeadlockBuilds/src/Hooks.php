@@ -200,6 +200,7 @@ class Hooks {
 		$version = $build['version'] ?? null;
 
 		$h  = '<div class="deadlock-build">';
+		$h .= self::soulDefs();
 
 		// Header: hero portrait + title + hero name.
 		$h .= '<div class="dlb-head">';
@@ -320,6 +321,37 @@ class Hooks {
 	}
 
 	/**
+	 * The in-game "souls" currency glyph, defined once per build as an SVG
+	 * <symbol> so every cost can reference it with a tiny <use>. Traced from
+	 * Deadlock's own gold.svg shop asset; recoloured via CSS `currentColor`.
+	 */
+	private static function soulDefs(): string {
+		return '<svg class="dlb-svgdefs" width="0" height="0" aria-hidden="true" '
+			. 'style="position:absolute;width:0;height:0;overflow:hidden">'
+			. '<symbol id="dlb-soul" viewBox="0 0 128 128" fill="currentColor">'
+			. '<path d="M64,10.6c29.4,0,53.4,23.9,53.4,53.4S93.4,117.4,64,117.4S10.6,93.4,10.6,64'
+			. 'S34.6,10.6,64,10.6z M64,0C28.6,0,0,28.6,0,64s28.6,64,64,64s64-28.6,64-64S99.4,0,64,0z"/>'
+			. '<path d="M91.4,79.9l-11.2-3c2.9-3.6,4.6-8,4.6-13c0-0.1,0-0.2,0-0.2l6.6-1.8c2.8-0.7,4.4-3.6,'
+			. '3.7-6.4c-0.5-1.8-2-3.1-3.7-3.6V52l-13.8-3.8c-3.7-3.1-8.4-5.1-13.6-5.1c-1.4,0-2.7,0.2-4,0.4'
+			. 'L58.1,43l33.4-9L88.7,24L36.6,38c-2.3,0.6-3.8,2.6-3.8,5c0,2.4,1.6,4.4,3.8,5l11.2,3c-2.9,3.6-'
+			. '4.6,8.1-4.6,13c0,0.1,0,0.2,0,0.2l-6.6,1.8c-2.8,0.7-4.4,3.6-3.7,6.4c0.5,1.8,2,3.2,3.7,3.7v0.1'
+			. 'l13.9,3.8C54.2,83,58.8,85,64,85c1.4,0,2.7-0.2,4-0.4l1.9,0.5l-33.4,9l2.7,10l52.2-14c2.3-0.6,'
+			. '3.8-2.6,3.8-5S93.8,80.6,91.4,79.9z M64,45.3c6.9,0,12.8,3.8,16.1,9.3l-34.8,9.3C45.4,53.6,'
+			. '53.7,45.3,64,45.3z M47.9,73.5l34.8-9.4C82.6,74.4,74.3,82.7,64,82.7C57.1,82.7,51.2,79,47.9,73.5z"/>'
+			. '</symbol></svg>';
+	}
+
+	/** A single inline souls glyph that references the per-build <symbol>. */
+	private static function soul(): string {
+		return '<svg class="dlb-soul" aria-hidden="true"><use href="#dlb-soul"></use></svg>';
+	}
+
+	/** Format a soul cost with the leading currency glyph. */
+	private static function costHtml( int $cost ): string {
+		return self::soul() . '<span class="dlb-soul-n">' . number_format( $cost ) . '</span>';
+	}
+
+	/**
 	 * Render one item as an icon tile with tier badge, cost and a rich hover
 	 * card. $annotation is the build creator's per-item note, if any.
 	 */
@@ -357,7 +389,7 @@ class Hooks {
 		$t .= '</div>';
 		$t .= '<div class="dlb-tname">' . htmlspecialchars( $it['name'] ) . '</div>';
 		if ( $cost !== null ) {
-			$t .= '<div class="dlb-tcost">' . number_format( (int)$cost ) . '</div>';
+			$t .= '<div class="dlb-tcost">' . self::costHtml( (int)$cost ) . '</div>';
 		}
 
 		// Hover card (shown via CSS on tile hover).
@@ -379,7 +411,7 @@ class Hooks {
 		$card .= '<div><div class="dlb-pop-name">' . htmlspecialchars( $it['name'] ) . '</div>'
 			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) ) . '</div></div></div>';
 		if ( $cost !== null ) {
-			$card .= '<div class="dlb-pop-cost">' . number_format( (int)$cost ) . ' souls</div>';
+			$card .= '<div class="dlb-pop-cost">' . self::costHtml( (int)$cost ) . ' souls</div>';
 		}
 		if ( $note !== '' ) {
 			$card .= '<div class="dlb-pop-note">' . htmlspecialchars( $note ) . '</div>';
@@ -413,6 +445,7 @@ class Hooks {
 		$meta[] = $active ? 'Active' : 'Passive';
 
 		$h  = '<div class="deadlock-build dlb-item-card dlb-slot-' . $slot . '">';
+		$h .= self::soulDefs();
 		$h .= '<div class="dlb-pop-head">';
 		if ( !empty( $it['image'] ) ) {
 			$h .= '<img class="dlb-pop-icon dlb-slot-' . $slot . '" src="' . htmlspecialchars( $it['image'] )
@@ -420,7 +453,7 @@ class Hooks {
 		}
 		$h .= '<div><div class="dlb-pop-name">' . htmlspecialchars( $it['name'] ) . '</div>'
 			. '<div class="dlb-pop-meta">' . htmlspecialchars( implode( ' · ', $meta ) )
-			. ( $cost !== null ? ' · ' . number_format( (int)$cost ) . ' souls' : '' ) . '</div></div></div>';
+			. ( $cost !== null ? ' · ' . self::costHtml( (int)$cost ) . ' souls' : '' ) . '</div></div></div>';
 		$h .= self::statList( $stats );
 		if ( $desc !== '' ) {
 			$h .= '<div class="dlb-pop-desc">' . htmlspecialchars( $desc ) . '</div>';

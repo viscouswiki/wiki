@@ -173,12 +173,29 @@
 }
 .deadlock-build .dlb-tcost {
 	margin-top: auto;
-	padding-top: 2px;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 7px 1px 5px;
+	border-radius: 999px;
+	background: #0c120d;
+	border: 1px solid #2a3a30;
 	font-size: 0.74em;
 	font-weight: 700;
 	font-variant-numeric: tabular-nums;
-	color: #cdb968;
+	color: #f0c76a;
 }
+
+/* In-game "souls" currency glyph (inline SVG referencing a per-build symbol). */
+.deadlock-build .dlb-soul {
+	width: 1.05em;
+	height: 1.05em;
+	flex: 0 0 auto;
+	vertical-align: -0.16em;
+	color: #f0c76a;
+	fill: currentColor;
+}
+.deadlock-build .dlb-soul-n { line-height: 1; }
 
 /* Slot accent colours on the icon frame
    (Deadlock: weapon=orange, vitality=green, spirit=purple). */
@@ -284,8 +301,11 @@
 	color: #8fae9c;
 }
 .deadlock-build .dlb-pop-cost {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	font-size: 0.82em;
-	color: #cdb968;
+	color: #f0c76a;
 	margin-bottom: 6px;
 }
 .deadlock-build .dlb-pop-note {
