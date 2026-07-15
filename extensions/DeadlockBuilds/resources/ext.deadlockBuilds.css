@@ -168,7 +168,10 @@
 	max-width: 82px;
 }
 .deadlock-build .dlb-tcost {
-	font-size: 0.72em;
+	margin-top: auto;
+	padding-top: 2px;
+	font-size: 0.74em;
+	font-weight: 700;
 	font-variant-numeric: tabular-nums;
 	color: #cdb968;
 }
