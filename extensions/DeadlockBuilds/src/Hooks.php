@@ -50,6 +50,78 @@ class Hooks {
 	}
 
 	/**
+	 * Auto-create a build page when a logged-in user visits a missing
+	 * Builds/<id> or Builds/meta/<id> title for a real Deadlock build. Guards:
+	 * only real builds (API-validated), only registered users who can create,
+	 * and it never resurrects a page that was deleted.
+	 */
+	public static function onShowMissingArticle( $article ) {
+		try {
+			$services = MediaWikiServices::getInstance();
+			if ( !self::config( 'DeadlockBuildsAutocreate', true ) ) {
+				return true;
+			}
+			if ( $services->getReadOnlyMode()->isReadOnly() ) {
+				return true;
+			}
+
+			$title = $article->getTitle();
+			if ( $title->getNamespace() !== NS_MAIN
+				|| !preg_match( '#^Builds/(meta/)?(\d+)$#', $title->getText(), $m )
+			) {
+				return true;
+			}
+			$isMeta = $m[1] !== '';
+			$buildId = $m[2];
+
+			// Respect a prior deletion — don't resurrect what someone removed.
+			if ( $title->isDeletedQuick() ) {
+				return true;
+			}
+
+			$ctx = $article->getContext();
+			$user = $ctx->getUser();
+			// Only admins (or a group granted this right) may auto-create.
+			if ( !$user->isAllowed( 'deadlock-autocreatebuild' ) ) {
+				return true;
+			}
+			$pm = $services->getPermissionManager();
+			if ( !$pm->userCan( 'edit', $user, $title ) || !$pm->userCan( 'create', $user, $title ) ) {
+				return true;
+			}
+
+			// Only create a page for a build that actually exists.
+			if ( !self::fetchBuild( $buildId ) ) {
+				return true;
+			}
+
+			$text = "<deadlockbuild id=\"$buildId\" />\n\n[[Category:Builds]]";
+			if ( $isMeta ) {
+				$text .= "\n[[Category:Meta builds]]";
+			}
+
+			$page = $services->getWikiPageFactory()->newFromTitle( $title );
+			$sysUser = \User::newSystemUser( 'DeadlockBuilds', [ 'steal' => true ] );
+			$updater = $page->newPageUpdater( $sysUser ?: $user );
+			$updater->setContent(
+				\MediaWiki\Revision\SlotRecord::MAIN,
+				\ContentHandler::makeContent( $text, $title )
+			);
+			$updater->saveRevision(
+				\CommentStoreComment::newUnsavedComment( 'Auto-create Deadlock build page' ),
+				EDIT_NEW
+			);
+			if ( $updater->wasSuccessful() ) {
+				$ctx->getOutput()->redirect( $title->getFullURL() );
+				return false; // suppress the default "no such page" output
+			}
+		} catch ( \Throwable $e ) {
+			// Fall through to the normal missing-page behaviour.
+		}
+		return true;
+	}
+
+	/**
 	 * <deadlockitem id="123"/> or <deadlockitem name="Extra Spirit"/> — render a
 	 * single item as a standalone card. Defaults to the page name so an item
 	 * page can simply contain <deadlockitem/>.

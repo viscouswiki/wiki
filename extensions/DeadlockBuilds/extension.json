@@ -1,6 +1,6 @@
 {
 	"name": "DeadlockBuilds",
-	"version": "0.4.1",
+	"version": "0.5.0",
 	"author": [
 		"Viscous Wiki"
 	],
@@ -15,7 +15,16 @@
 		"MediaWiki\\Extension\\DeadlockBuilds\\": "src/"
 	},
 	"Hooks": {
-		"ParserFirstCallInit": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onParserFirstCallInit"
+		"ParserFirstCallInit": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onParserFirstCallInit",
+		"ShowMissingArticle": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onShowMissingArticle"
+	},
+	"AvailableRights": [
+		"deadlock-autocreatebuild"
+	],
+	"GroupPermissions": {
+		"sysop": {
+			"deadlock-autocreatebuild": true
+		}
 	},
 	"ResourceModules": {
 		"ext.deadlockBuilds": {
@@ -40,6 +49,10 @@
 		"DeadlockBuildsAssetTtl": {
 			"description": "Seconds to cache the items/heroes/tags asset maps.",
 			"value": 86400
+		},
+		"DeadlockBuildsAutocreate": {
+			"description": "Auto-create a build page when a logged-in user visits a missing Builds/<id> or Builds/meta/<id> title for a real build.",
+			"value": true
 		}
 	},
 	"manifest_version": 2
