@@ -243,6 +243,7 @@ class Hooks {
 		foreach ( $cats as $cat ) {
 			$mods = is_array( $cat['mods'] ?? null ) ? $cat['mods'] : [];
 			$tiles = '';
+			$tileCount = 0;
 			foreach ( $mods as $mod ) {
 				$aid = $mod['ability_id'] ?? null;
 				if ( $aid === null || !isset( $items[$aid] ) ) {
@@ -254,6 +255,7 @@ class Hooks {
 					continue;
 				}
 				$tiles .= self::itemTile( $it, $mod['annotation'] ?? null );
+				$tileCount++;
 			}
 			if ( $tiles === '' ) {
 				continue;
@@ -261,7 +263,10 @@ class Hooks {
 			$catNum++;
 			$label = self::categoryLabel( (string)( $cat['name'] ?? '' ), $catNum );
 			$catDesc = self::noteText( (string)( $cat['description'] ?? '' ) );
-			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-name">' . htmlspecialchars( $label ) . '</div>'
+			$countLabel = $tileCount . ' item' . ( $tileCount === 1 ? '' : 's' );
+			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-head">'
+				. '<div class="dlb-cat-name">' . htmlspecialchars( $label ) . '</div>'
+				. '<div class="dlb-cat-count">' . htmlspecialchars( $countLabel ) . '</div></div>'
 				. ( $catDesc !== '' ? '<div class="dlb-cat-desc">' . htmlspecialchars( $catDesc ) . '</div>' : '' )
 				. '<div class="dlb-grid">' . $tiles . '</div></div>';
 		}
@@ -580,7 +585,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v4' ),
+			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v5' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $kind ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -683,10 +688,18 @@ class Hooks {
 		$parts = [];
 		foreach ( [ 'passive', 'active', 'innate' ] as $k ) {
 			if ( !empty( $dd[$k] ) ) {
-				$parts[] = trim( strip_tags( (string)$dd[$k] ) );
+				// The API ships each description as HTML with inline value spans.
+				// Strip the tags, decode entities, and collapse the leftover
+				// whitespace/newlines to single spaces so the text reads as one
+				// clean sentence (loose newlines otherwise become <p> gaps).
+				$text = html_entity_decode( strip_tags( (string)$dd[$k] ), ENT_QUOTES | ENT_HTML5 );
+				$text = trim( preg_replace( '/\s+/u', ' ', $text ) );
+				if ( $text !== '' ) {
+					$parts[] = $text;
+				}
 			}
 		}
-		return trim( implode( ' ', array_filter( $parts ) ) );
+		return trim( implode( ' ', $parts ) );
 	}
 
 	/** Friendly label for a Deadlock stat property name. */

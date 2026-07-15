@@ -1,38 +1,52 @@
 /* DeadlockBuilds — <deadlockbuild> tag styling (Viscous green theme). */
 .deadlock-build {
-	border: 1px solid #2a3a30;
-	border-radius: 12px;
-	background: #141d17;
+	border: 1px solid #26342b;
+	border-radius: 14px;
+	background:
+		radial-gradient(120% 60% at 50% -10%, rgba(57, 255, 136, 0.06), transparent 60%),
+		linear-gradient(180deg, #16211a 0%, #121a15 100%);
 	color: #d9f2e4;
-	padding: 16px 18px;
+	padding: 20px 22px;
 	margin: 1em 0;
 	font-size: 0.95em;
 	line-height: 1.5;
-	max-width: 860px;
+	max-width: 900px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 /* Header ---------------------------------------------------------------- */
 .deadlock-build .dlb-head {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	border-bottom: 1px solid #2a3a30;
-	padding-bottom: 12px;
-	margin-bottom: 12px;
+	gap: 14px;
+	padding-bottom: 16px;
+	margin-bottom: 18px;
+	position: relative;
+}
+.deadlock-build .dlb-head::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 1px;
+	background: linear-gradient(90deg, rgba(57, 255, 136, 0.5), rgba(42, 58, 48, 0.15) 60%, transparent);
 }
 .deadlock-build .dlb-hero-img {
-	width: 48px;
-	height: 48px;
+	width: 54px;
+	height: 54px;
 	border-radius: 50%;
 	background: #0d130f;
-	border: 2px solid #39ff88;
+	border: 2px solid rgba(57, 255, 136, 0.55);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(57, 255, 136, 0.18);
 	object-fit: cover;
 	flex: 0 0 auto;
 }
 .deadlock-build .dlb-title {
 	font-weight: 700;
-	font-size: 1.2em;
-	color: #39ff88;
+	font-size: 1.35em;
+	letter-spacing: 0.01em;
+	color: #eafff2;
 	line-height: 1.2;
 }
 .deadlock-build .dlb-hero {
@@ -48,50 +62,80 @@
 .deadlock-build .dlb-tags { margin-bottom: 10px; }
 .deadlock-build .dlb-tag {
 	display: inline-block;
-	font-size: 0.78em;
-	color: #cdeeda;
-	background: #1d2a22;
-	border: 1px solid #2a3a30;
+	font-size: 0.76em;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: #bfe9d0;
+	background: linear-gradient(180deg, #20302708, #1d2a22);
+	border: 1px solid #33473b;
 	border-radius: 999px;
-	padding: 1px 9px;
-	margin: 0 4px 4px 0;
+	padding: 2px 11px;
+	margin: 0 5px 5px 0;
 }
 .deadlock-build .dlb-desc {
-	color: #b9d8c6;
-	font-size: 0.9em;
-	margin-bottom: 14px;
+	color: #c4ddcf;
+	font-size: 0.92em;
+	font-style: italic;
+	margin-bottom: 18px;
+	padding: 2px 0 2px 12px;
+	border-left: 3px solid rgba(57, 255, 136, 0.35);
 }
 
 /* Build order: categories of item tiles --------------------------------- */
 .deadlock-build .dlb-build-order {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
 }
+/* Sections are separated by a hairline rule rather than nested boxes, for a
+   cleaner, more editorial layout. */
 .deadlock-build .dlb-cat {
-	background: #10160f;
-	border: 1px solid #24331d;
-	border-radius: 10px;
-	padding: 10px 12px;
+	padding: 18px 0 4px;
+	border-top: 1px solid rgba(42, 58, 48, 0.6);
+}
+.deadlock-build .dlb-cat-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 4px;
 }
 .deadlock-build .dlb-cat-name {
-	font-size: 0.76em;
+	position: relative;
+	font-size: 0.82em;
+	font-weight: 700;
 	text-transform: uppercase;
-	letter-spacing: 0.07em;
-	color: #8fae9c;
-	margin-bottom: 10px;
+	letter-spacing: 0.09em;
+	color: #d6efe0;
+	padding-left: 11px;
+}
+.deadlock-build .dlb-cat-name::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.05em;
+	bottom: 0.05em;
+	width: 3px;
+	border-radius: 2px;
+	background: #39ff88;
+}
+.deadlock-build .dlb-cat-count {
+	flex: 0 0 auto;
+	font-size: 0.72em;
+	letter-spacing: 0.04em;
+	color: #7f9a8a;
 }
 .deadlock-build .dlb-cat-desc {
-	font-size: 0.86em;
+	font-size: 0.87em;
 	font-style: italic;
 	color: #a7c6b4;
-	margin: -6px 0 10px;
-	line-height: 1.4;
+	margin: 4px 0 12px;
+	line-height: 1.45;
 }
 .deadlock-build .dlb-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-	gap: 10px;
+	grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+	gap: 12px;
+	margin-top: 10px;
 }
 
 /* Item tile ------------------------------------------------------------- */
@@ -101,20 +145,26 @@
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
-	gap: 4px;
-	padding: 6px 4px;
-	border-radius: 8px;
-	background: #17241542;
+	gap: 5px;
+	padding: 8px 4px 7px;
+	border-radius: 9px;
+	background: rgba(23, 36, 21, 0.26);
 	cursor: help;
+	transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
 }
-.deadlock-build .dlb-tile:hover { background: #1e2f21; }
+.deadlock-build .dlb-tile:hover {
+	background: rgba(30, 47, 33, 0.75);
+	transform: translateY(-2px);
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+	z-index: 5;
+}
 .deadlock-build .dlb-icon-wrap {
 	position: relative;
-	width: 52px;
-	height: 52px;
-	border-radius: 8px;
+	width: 54px;
+	height: 54px;
+	border-radius: 9px;
 	border: 2px solid #3a4a40;
-	background: #0d130f;
+	background: radial-gradient(circle at 50% 30%, #18231b, #0b100c);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -209,6 +259,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
+	margin-top: 10px;
 }
 .deadlock-build .dlb-abil {
 	position: relative;
