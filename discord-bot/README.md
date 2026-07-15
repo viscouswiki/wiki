@@ -44,8 +44,16 @@ You do this part (I can't create the bot for you):
    server icon → *Copy Server ID*. Leave blank to use the bot's only server.
 5. Set `DISCORD_UI_USER` / `DISCORD_UI_PASSWORD` for the admin UI login.
 
-Then bring the stack up (`docker compose up -d --build discord-bot`) and open
-**`https://viscous.wiki/discord`**.
+The bot is an **opt-in service** behind the `discord` compose profile, so the
+core wiki stack never starts it by accident. Once the env vars are set, deploy
+it with:
+
+```bash
+docker compose --profile discord up -d --build discord-bot
+```
+
+Then open **`https://viscous.wiki/discord`** (this also needs the `/discord*`
+route in the Caddyfile and the tunnel pointing at Caddy).
 
 ---
 

@@ -38,6 +38,7 @@ services:
       - ./mediawiki/shorturl.conf:/etc/apache2/conf-enabled/shorturl.conf:ro
       - ./skins/Citizen:/var/www/html/skins/Citizen:ro
       - ./skins/Fluent:/var/www/html/skins/Fluent:ro
+      - ./extensions/DeadlockBuilds:/var/www/html/extensions/DeadlockBuilds:ro
     expose:
       - "80"
 
@@ -67,17 +68,24 @@ services:
   discord-bot:
     build: ./discord-bot
     restart: unless-stopped
+    # Opt-in service: only starts when the "discord" profile is enabled, e.g.
+    #   docker compose --profile discord up -d
+    # The core wiki stack (plain `docker compose up -d`) never starts it, so a
+    # host without Discord config in .env still runs fine. The app also refuses
+    # to serve the UI without DISCORD_UI_PASSWORD (returns 503), so the defaults
+    # below only keep the compose file parseable — they don't expose anything.
+    profiles: ["discord"]
     environment:
       PORT: 8080
       BASE_PATH: /discord
       DATA_DIR: /data
       # Discord Developer Portal > your app > Bot > token.
-      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       # Optional: pin a specific server; otherwise the bot's first guild is used.
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
       # HTTP Basic auth for the channel-picker UI (placeholder auth for now).
       DISCORD_UI_USER: ${DISCORD_UI_USER:-admin}
-      DISCORD_UI_PASSWORD: ${DISCORD_UI_PASSWORD:?set DISCORD_UI_PASSWORD in .env}
+      DISCORD_UI_PASSWORD: ${DISCORD_UI_PASSWORD:-}
     volumes:
       - discord-data:/data
     expose:
@@ -89,7 +97,6 @@ services:
     depends_on:
       - mediawiki
       - uploader
-      - discord-bot
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     expose:

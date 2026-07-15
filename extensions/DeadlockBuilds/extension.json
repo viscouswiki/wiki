@@ -1,0 +1,46 @@
+{
+	"name": "DeadlockBuilds",
+	"version": "0.1.0",
+	"author": [
+		"Viscous Wiki"
+	],
+	"url": "https://viscous.wiki",
+	"description": "Adds a <deadlockbuild id=\"...\"/> parser tag that renders a Deadlock build (item build order, hero, tags) fetched live from the deadlock-api.com community API and cached.",
+	"license-name": "MIT",
+	"type": "parserhook",
+	"requires": {
+		"MediaWiki": ">= 1.39.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\DeadlockBuilds\\": "src/"
+	},
+	"Hooks": {
+		"ParserFirstCallInit": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onParserFirstCallInit"
+	},
+	"ResourceModules": {
+		"ext.deadlockBuilds": {
+			"styles": [
+				"ext.deadlockBuilds.css"
+			]
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "resources",
+		"remoteExtPath": "DeadlockBuilds/resources"
+	},
+	"config": {
+		"DeadlockBuildsApiBase": {
+			"description": "Base URL of the deadlock-api.com API.",
+			"value": "https://api.deadlock-api.com"
+		},
+		"DeadlockBuildsBuildTtl": {
+			"description": "Seconds to cache a single build's data.",
+			"value": 3600
+		},
+		"DeadlockBuildsAssetTtl": {
+			"description": "Seconds to cache the items/heroes/tags asset maps.",
+			"value": 86400
+		}
+	},
+	"manifest_version": 2
+}

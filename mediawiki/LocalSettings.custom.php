@@ -32,6 +32,12 @@ wfLoadExtension( 'CategoryTree' );
 // like Template:Build to hide empty infobox rows. No DB tables required.
 wfLoadExtension( 'ParserFunctions' );
 
+// DeadlockBuilds (first-party, in ./extensions) — <deadlockbuild id="..."/> tag
+// that renders a Deadlock build from the deadlock-api.com API. Results are
+// cached in the object cache (see $wgMainCacheType below); pages are also
+// parser-cached, so the API is not called on normal page views.
+wfLoadExtension( 'DeadlockBuilds' );
+
 // ---- "Video Uploaders" group (gates the R2 uploader at /upload) ----------
 // Members may use the media uploader. Assign people via Special:UserRights
 // (you, as a bureaucrat, can grant it). No special on-wiki permissions are
@@ -54,10 +60,16 @@ $wgEnableUploads    = true;
 $wgUseInstantCommons = false;
 
 // ---- Caching -------------------------------------------------------------
-// Keep the message cache in the DB (shared between the web server and CLI
-// maintenance scripts). With the default APCu message cache, edits made via
-// maintenance scripts (e.g. edit.php) don't invalidate the web server's copy,
-// so things like MediaWiki:Sidebar silently keep serving the old/default value.
+// The install set $wgMainCacheType = CACHE_ACCEL (APCu), but APCu isn't built
+// into the mediawiki image — so the object cache silently became a no-op. Pin
+// it to the database instead: a real, shared, persistent backend with no extra
+// services. This makes WANObjectCache actually cache (e.g. the DeadlockBuilds
+// extension's API responses) and fixes the same root cause behind the earlier
+// sidebar/message-cache issue.
+$wgMainCacheType = CACHE_DB;
+
+// Keep the message cache in the DB too (shared between the web server and CLI
+// maintenance scripts) so edits via maintenance scripts invalidate correctly.
 $wgMessageCacheType = CACHE_DB;
 
 // ---- Behind the Cloudflare tunnel (TLS terminated at the edge) -----------
