@@ -28,6 +28,10 @@ $wgDefaultSkin = 'citizen';
 // category pages / Special:Categories. No download or DB tables required.
 wfLoadExtension( 'CategoryTree' );
 
+// ParserFunctions (bundled) — #if / #ifeq / #switch etc. Needed by templates
+// like Template:Build to hide empty infobox rows. No DB tables required.
+wfLoadExtension( 'ParserFunctions' );
+
 // ---- "Video Uploaders" group (gates the R2 uploader at /upload) ----------
 // Members may use the media uploader. Assign people via Special:UserRights
 // (you, as a bureaucrat, can grant it). No special on-wiki permissions are
