@@ -1,40 +1,47 @@
 /* DeadlockBuilds — <deadlockbuild> tag styling (Viscous green theme). */
 .deadlock-build {
 	border: 1px solid #2a3a30;
-	border-radius: 10px;
-	background: #16201a;
+	border-radius: 12px;
+	background: #141d17;
 	color: #d9f2e4;
-	padding: 14px 16px;
+	padding: 16px 18px;
 	margin: 1em 0;
 	font-size: 0.95em;
 	line-height: 1.5;
-	max-width: 720px;
+	max-width: 860px;
 }
+
+/* Header ---------------------------------------------------------------- */
 .deadlock-build .dlb-head {
 	display: flex;
-	align-items: baseline;
-	gap: 10px;
-	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
 	border-bottom: 1px solid #2a3a30;
-	padding-bottom: 10px;
-	margin-bottom: 10px;
+	padding-bottom: 12px;
+	margin-bottom: 12px;
+}
+.deadlock-build .dlb-hero-img {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: #0d130f;
+	border: 2px solid #39ff88;
+	object-fit: cover;
+	flex: 0 0 auto;
 }
 .deadlock-build .dlb-title {
 	font-weight: 700;
-	font-size: 1.15em;
+	font-size: 1.2em;
 	color: #39ff88;
+	line-height: 1.2;
 }
 .deadlock-build .dlb-hero {
 	font-size: 0.85em;
 	color: #8fae9c;
-	background: #1d2a22;
-	border: 1px solid #2a3a30;
-	border-radius: 999px;
-	padding: 1px 10px;
 }
-.deadlock-build .dlb-tags {
-	margin-bottom: 10px;
-}
+
+/* Tags + description ---------------------------------------------------- */
+.deadlock-build .dlb-tags { margin-bottom: 10px; }
 .deadlock-build .dlb-tag {
 	display: inline-block;
 	font-size: 0.78em;
@@ -48,63 +55,137 @@
 .deadlock-build .dlb-desc {
 	color: #b9d8c6;
 	font-size: 0.9em;
-	margin-bottom: 12px;
+	margin-bottom: 14px;
 }
+
+/* Build order: categories of item tiles --------------------------------- */
 .deadlock-build .dlb-build-order {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-	gap: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
 }
 .deadlock-build .dlb-cat {
-	background: #12190f;
+	background: #10160f;
 	border: 1px solid #24331d;
-	border-radius: 8px;
-	padding: 8px 10px;
+	border-radius: 10px;
+	padding: 10px 12px;
 }
 .deadlock-build .dlb-cat-name {
-	font-size: 0.78em;
+	font-size: 0.76em;
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: 0.07em;
 	color: #8fae9c;
-	margin-bottom: 6px;
+	margin-bottom: 10px;
 }
-.deadlock-build ul.dlb-items {
-	list-style: none;
-	margin: 0;
-	padding: 0;
+.deadlock-build .dlb-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+	gap: 10px;
 }
-.deadlock-build .dlb-item {
+
+/* Item tile ------------------------------------------------------------- */
+.deadlock-build .dlb-tile {
 	display: flex;
-	justify-content: space-between;
+	flex-direction: column;
 	align-items: center;
-	gap: 8px;
-	padding: 3px 8px;
-	margin: 3px 0;
-	border-left: 3px solid #3a4a40;
-	border-radius: 4px;
+	text-align: center;
+	gap: 4px;
+	padding: 6px 4px;
+	border-radius: 8px;
 	background: #17241542;
+	cursor: help;
 }
-.deadlock-build .dlb-item-name { font-weight: 500; }
-.deadlock-build .dlb-item-cost {
+.deadlock-build .dlb-tile:hover { background: #1e2f21; }
+.deadlock-build .dlb-icon-wrap {
+	position: relative;
+	width: 52px;
+	height: 52px;
+	border-radius: 8px;
+	border: 2px solid #3a4a40;
+	background: #0d130f;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+.deadlock-build .dlb-icon {
+	width: 46px;
+	height: 46px;
+	object-fit: contain;
+}
+.deadlock-build .dlb-tier {
+	position: absolute;
+	bottom: -1px;
+	right: -1px;
+	min-width: 15px;
+	height: 15px;
+	padding: 0 3px;
+	font-size: 10px;
+	line-height: 15px;
+	font-weight: 700;
+	color: #0d130f;
+	background: #cdb968;
+	border-top-left-radius: 6px;
+}
+.deadlock-build .dlb-act {
+	position: absolute;
+	top: -1px;
+	left: -1px;
+	width: 15px;
+	height: 15px;
+	font-size: 10px;
+	line-height: 15px;
+	font-weight: 700;
+	color: #0d130f;
+	background: #39ff88;
+	border-bottom-right-radius: 6px;
+}
+.deadlock-build .dlb-tname {
+	font-size: 0.72em;
+	color: #cbe6d5;
+	line-height: 1.15;
+	max-width: 82px;
+}
+.deadlock-build .dlb-tcost {
+	font-size: 0.72em;
 	font-variant-numeric: tabular-nums;
-	font-size: 0.85em;
 	color: #cdb968;
-	white-space: nowrap;
 }
-/* Slot accent colours (Deadlock: weapon=orange, vitality=green, spirit=purple). */
-.deadlock-build .dlb-slot-weapon   { border-left-color: #e0913b; }
-.deadlock-build .dlb-slot-vitality { border-left-color: #57c34a; }
-.deadlock-build .dlb-slot-spirit   { border-left-color: #b06cf0; }
-.deadlock-build .dlb-slot-other    { border-left-color: #6b7d72; }
+
+/* Slot accent colours on the icon frame
+   (Deadlock: weapon=orange, vitality=green, spirit=purple). */
+.deadlock-build .dlb-slot-weapon   .dlb-icon-wrap { border-color: #e0913b; }
+.deadlock-build .dlb-slot-vitality .dlb-icon-wrap { border-color: #57c34a; }
+.deadlock-build .dlb-slot-spirit   .dlb-icon-wrap { border-color: #b06cf0; }
+.deadlock-build .dlb-slot-other    .dlb-icon-wrap { border-color: #6b7d72; }
+
+/* Footer + legend ------------------------------------------------------- */
 .deadlock-build .dlb-foot {
-	margin-top: 12px;
-	padding-top: 8px;
+	margin-top: 14px;
+	padding-top: 10px;
 	border-top: 1px solid #2a3a30;
-	font-size: 0.8em;
+	font-size: 0.78em;
 	color: #8fae9c;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 8px;
 }
+.deadlock-build .dlb-legend { display: inline-flex; align-items: center; gap: 4px; }
+.deadlock-build .dlb-key {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 2px;
+	margin: 0 2px 0 8px;
+	vertical-align: middle;
+}
+.deadlock-build .dlb-key.dlb-slot-weapon   { background: #e0913b; }
+.deadlock-build .dlb-key.dlb-slot-vitality { background: #57c34a; }
+.deadlock-build .dlb-key.dlb-slot-spirit   { background: #b06cf0; }
 .deadlock-build .dlb-foot a { color: #39ff88; }
-/* Notices */
+
+/* Notices --------------------------------------------------------------- */
 .deadlock-build.dlb-notice { padding: 10px 14px; }
 .deadlock-build.dlb-error {
 	border-color: #6b2a2a;

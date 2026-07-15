@@ -2,11 +2,12 @@
 /**
  * DeadlockBuilds — <deadlockbuild id="..."/> parser tag.
  *
- * Renders a Deadlock build (item build order + hero + tags) fetched from the
- * deadlock-api.com community API. All network results are cached in the main
- * WAN object cache so page views don't hammer the API, and every failure mode
- * degrades to a small inline notice rather than a fatal — a broken build must
- * never take the wiki down.
+ * Renders a Deadlock build (hero portrait + item build order as an icon grid
+ * with tiers, costs and stat tooltips) fetched from the deadlock-api.com
+ * community API. All network results are cached in the main WAN object cache so
+ * page views don't hammer the API, and every failure mode degrades to a small
+ * inline notice rather than a fatal — a broken build must never take the wiki
+ * down.
  */
 
 namespace MediaWiki\Extension\DeadlockBuilds;
@@ -56,19 +57,26 @@ class Hooks {
 
 		$name    = (string)( $build['name'] ?? "Build $id" );
 		$heroId  = $build['hero_id'] ?? null;
-		$hero    = ( $heroId !== null && isset( $heroes[$heroId] ) ) ? $heroes[$heroId]['name'] : null;
+		$hero    = ( $heroId !== null && isset( $heroes[$heroId] ) ) ? $heroes[$heroId] : null;
 		$desc    = trim( (string)( $build['description'] ?? '' ) );
 		$version = $build['version'] ?? null;
 
 		$h  = '<div class="deadlock-build">';
-		$h .= '<div class="dlb-head">';
-		$h .= '<span class="dlb-title">' . htmlspecialchars( $name ) . '</span>';
-		if ( $hero !== null ) {
-			$h .= '<span class="dlb-hero">' . htmlspecialchars( $hero ) . '</span>';
-		}
-		$h .= '</div>';
 
-		// Tags
+		// Header: hero portrait + title + hero name.
+		$h .= '<div class="dlb-head">';
+		if ( $hero && !empty( $hero['image'] ) ) {
+			$h .= '<img class="dlb-hero-img" src="' . htmlspecialchars( $hero['image'] )
+				. '" alt="' . htmlspecialchars( $hero['name'] ) . '" width="48" height="48" loading="lazy">';
+		}
+		$h .= '<div class="dlb-head-text">';
+		$h .= '<div class="dlb-title">' . htmlspecialchars( $name ) . '</div>';
+		if ( $hero ) {
+			$h .= '<div class="dlb-hero">' . htmlspecialchars( $hero['name'] ) . '</div>';
+		}
+		$h .= '</div></div>';
+
+		// Tags.
 		$btags = is_array( $build['tags'] ?? null ) ? $build['tags'] : [];
 		$tagHtml = '';
 		foreach ( $btags as $tid ) {
@@ -81,31 +89,28 @@ class Hooks {
 		}
 
 		if ( $desc !== '' ) {
-			$h .= '<div class="dlb-desc">' . nl2br( htmlspecialchars( mb_strimwidth( $desc, 0, 400, '…' ) ) ) . '</div>';
+			// Strip literal newlines (keep the <br>) so MediaWiki's block parser
+			// doesn't wrap fragments of our output in <p> tags.
+			$descHtml = str_replace( "\n", '', nl2br( htmlspecialchars( mb_strimwidth( $desc, 0, 400, '…' ) ) ) );
+			$h .= '<div class="dlb-desc">' . $descHtml . '</div>';
 		}
 
-		// Item build order — the author's own categories, in order.
+		// Item build order — the author's own categories, in order, as icon tiles.
 		$cats = $build['details']['mod_categories'] ?? [];
 		$catHtml = '';
 		$catNum = 0;
 		foreach ( $cats as $cat ) {
 			$mods = is_array( $cat['mods'] ?? null ) ? $cat['mods'] : [];
-			$itemsHtml = '';
+			$tiles = '';
 			foreach ( $mods as $mod ) {
 				$aid = $mod['ability_id'] ?? null;
 				if ( $aid === null || !isset( $items[$aid] ) ) {
-					// Not an item (e.g. a hero ability point) — skip in v1.
+					// Not a shop item (e.g. a hero ability point) — skip in v1.
 					continue;
 				}
-				$it   = $items[$aid];
-				$slot = self::slotClass( $it['slot'] ?? '' );
-				$cost = $it['cost'] ?? null;
-				$itemsHtml .= '<li class="dlb-item dlb-slot-' . $slot . '">'
-					. '<span class="dlb-item-name">' . htmlspecialchars( $it['name'] ) . '</span>'
-					. ( $cost !== null ? '<span class="dlb-item-cost">' . number_format( (int)$cost ) . '</span>' : '' )
-					. '</li>';
+				$tiles .= self::itemTile( $items[$aid] );
 			}
-			if ( $itemsHtml === '' ) {
+			if ( $tiles === '' ) {
 				continue;
 			}
 			$catNum++;
@@ -114,7 +119,7 @@ class Hooks {
 				$label = 'Group ' . $catNum;
 			}
 			$catHtml .= '<div class="dlb-cat"><div class="dlb-cat-name">' . htmlspecialchars( $label )
-				. '</div><ul class="dlb-items">' . $itemsHtml . '</ul></div>';
+				. '</div><div class="dlb-grid">' . $tiles . '</div></div>';
 		}
 
 		if ( $catHtml !== '' ) {
@@ -123,15 +128,58 @@ class Hooks {
 			$h .= self::notice( 'warn', 'No item data available for this build.' );
 		}
 
-		$apiBase = self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API );
-		$src = rtrim( $apiBase, '/' ) . '/v1/builds?build_id=' . rawurlencode( $id );
+		// Footer + legend.
+		$apiBase = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
+		$src = $apiBase . '/v1/builds?build_id=' . rawurlencode( $id );
 		$h .= '<div class="dlb-foot">'
+			. '<span class="dlb-legend"><span class="dlb-key dlb-slot-weapon"></span>Weapon '
+			. '<span class="dlb-key dlb-slot-vitality"></span>Vitality '
+			. '<span class="dlb-key dlb-slot-spirit"></span>Spirit</span>'
+			. '<span class="dlb-src">'
 			. ( $version !== null ? 'v' . htmlspecialchars( (string)$version ) . ' · ' : '' )
-			. 'Data: <a href="' . htmlspecialchars( $src ) . '" rel="nofollow noopener" target="_blank">deadlock-api.com build ' . htmlspecialchars( $id ) . '</a>'
-			. '</div>';
+			. 'Data: <a href="' . htmlspecialchars( $src ) . '" rel="nofollow noopener" target="_blank">deadlock-api.com ' . htmlspecialchars( $id ) . '</a>'
+			. '</span></div>';
 
 		$h .= '</div>';
 		return $h;
+	}
+
+	/** Render one item as an icon tile with tier badge, cost and a stat tooltip. */
+	private static function itemTile( array $it ): string {
+		$slot   = self::slotClass( $it['slot'] ?? '' );
+		$tier   = $it['tier'] ?? null;
+		$cost   = $it['cost'] ?? null;
+		$active = !empty( $it['active'] );
+		$stats  = is_array( $it['stats'] ?? null ) ? $it['stats'] : [];
+
+		$tip = $it['name'];
+		if ( $tier !== null ) {
+			$tip .= "\nTier $tier" . ( $active ? ' · Active' : '' );
+		}
+		if ( $stats ) {
+			$tip .= "\n" . implode( "\n", $stats );
+		}
+
+		$t  = '<div class="dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' )
+			. '" title="' . self::attr( $tip ) . '">';
+		$t .= '<div class="dlb-icon-wrap">';
+		if ( !empty( $it['image'] ) ) {
+			$t .= '<img class="dlb-icon" src="' . htmlspecialchars( $it['image'] )
+				. '" alt="' . htmlspecialchars( $it['name'] ) . '" width="46" height="46" loading="lazy">';
+		}
+		if ( $tier !== null ) {
+			$t .= '<span class="dlb-tier">' . htmlspecialchars( (string)$tier ) . '</span>';
+		}
+		if ( $active ) {
+			$t .= '<span class="dlb-act" title="Active item">A</span>';
+		}
+		$t .= '</div>';
+		$t .= '<div class="dlb-tname">' . htmlspecialchars( $it['name'] ) . '</div>';
+		if ( $cost !== null ) {
+			$t .= '<div class="dlb-tcost">' . number_format( (int)$cost ) . '</div>';
+		}
+		$t .= '</div>';
+		return $t;
 	}
 
 	private static function slotClass( string $slot ): string {
@@ -144,6 +192,12 @@ class Hooks {
 
 	private static function notice( string $kind, string $htmlMsg ): string {
 		return '<div class="deadlock-build dlb-notice dlb-' . htmlspecialchars( $kind ) . '">' . $htmlMsg . '</div>';
+	}
+
+	/** Escape a string for an HTML attribute, encoding newlines as &#10; so
+	 * multi-line title tooltips survive without tripping the block parser. */
+	private static function attr( string $text ): string {
+		return str_replace( "\n", '&#10;', htmlspecialchars( $text ) );
 	}
 
 	// ---- Data access (cached) -------------------------------------------
@@ -170,14 +224,16 @@ class Hooks {
 	}
 
 	/**
-	 * Build an id => {name, cost, slot} map for an asset kind
-	 * ('items' | 'heroes' | 'build-tags'), cached for a day.
+	 * Build a trimmed id => data map for an asset kind, cached for a day:
+	 *   items      => id => {name, cost, slot, tier, active, image, stats[]}
+	 *   heroes     => id => {name, image}
+	 *   build-tags => id => {name}
 	 */
 	private static function assetMap( string $kind ): array {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-assets', $kind ),
+			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v3' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $kind ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -192,11 +248,26 @@ class Hooks {
 					if ( !isset( $row['id'] ) ) {
 						continue;
 					}
-					$map[$row['id']] = [
-						'name' => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
-						'cost' => $row['cost'] ?? null,
-						'slot' => (string)( $row['item_slot_type'] ?? '' ),
-					];
+					if ( $kind === 'items' ) {
+						$map[$row['id']] = [
+							'name'   => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
+							'cost'   => $row['cost'] ?? null,
+							'slot'   => (string)( $row['item_slot_type'] ?? '' ),
+							'tier'   => $row['item_tier'] ?? null,
+							'active' => !empty( $row['is_active_item'] ),
+							'image'  => (string)( $row['shop_image_webp'] ?? $row['shop_image'] ?? '' ),
+							'stats'  => self::itemStats( $row ),
+						];
+					} elseif ( $kind === 'heroes' ) {
+						$imgs = is_array( $row['images'] ?? null ) ? $row['images'] : [];
+						$map[$row['id']] = [
+							'name'  => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
+							'image' => (string)( $imgs['icon_image_small_webp'] ?? $imgs['icon_image_small'] ?? '' ),
+						];
+					} else {
+						// build-tags use "label" (e.g. "For New Players"), not "name".
+						$map[$row['id']] = [ 'name' => (string)( $row['label'] ?? $row['name'] ?? ( '#' . $row['id'] ) ) ];
+					}
 				}
 				return $map;
 			}
@@ -204,12 +275,55 @@ class Hooks {
 		return is_array( $value ) ? $value : [];
 	}
 
+	/** Extract "Label +bonus" stat strings from an item's upgrades. */
+	private static function itemStats( array $row ): array {
+		$out = [];
+		foreach ( $row['upgrades'] ?? [] as $u ) {
+			foreach ( $u['property_upgrades'] ?? [] as $p ) {
+				$name = $p['name'] ?? null;
+				if ( $name === null ) {
+					continue;
+				}
+				$bonus = $p['bonus'] ?? null;
+				$out[] = self::statLabel( (string)$name ) . ( $bonus !== null && $bonus !== '' ? ' +' . $bonus : '' );
+			}
+		}
+		return $out;
+	}
+
+	/** Friendly label for a Deadlock stat property name. */
+	private static function statLabel( string $name ): string {
+		static $map = [
+			'TechPower'              => 'Spirit Power',
+			'TechRange'              => 'Spirit Range',
+			'TechDuration'           => 'Spirit Duration',
+			'TechCooldown'           => 'Cooldown Reduction',
+			'BonusHealth'            => 'Bonus Health',
+			'BonusHealthRegen'       => 'Health Regen',
+			'BulletDamage'           => 'Weapon Damage',
+			'BaseWeaponDamageIncrease' => 'Weapon Damage',
+			'BulletResist'           => 'Bullet Resist',
+			'SpiritResist'           => 'Spirit Resist',
+			'BonusClipSizePercent'   => 'Ammo',
+			'BonusFireRate'          => 'Fire Rate',
+			'BonusMoveSpeed'         => 'Move Speed',
+			'ProcBonusSpirit'        => 'Spirit Power',
+		];
+		if ( isset( $map[$name] ) ) {
+			return $map[$name];
+		}
+		// Fallback: de-camelCase and tidy ("BonusClipSizePercent" -> "Bonus Clip Size %").
+		$s = preg_replace( '/(?<=[a-z0-9])(?=[A-Z])/', ' ', $name );
+		$s = str_replace( [ 'Percent', 'Bonus ' ], [ '%', '' ], $s );
+		return trim( $s );
+	}
+
 	// ---- Helpers ---------------------------------------------------------
 
 	private static function httpGet( string $url ) {
 		$res = MediaWikiServices::getInstance()->getHttpRequestFactory()->get(
 			$url,
-			[ 'timeout' => 5, 'connectTimeout' => 3 ],
+			[ 'timeout' => 8, 'connectTimeout' => 3 ],
 			__METHOD__
 		);
 		return $res; // string on success, null on failure
