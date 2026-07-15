@@ -64,12 +64,32 @@ services:
     expose:
       - "8080"
 
+  discord-bot:
+    build: ./discord-bot
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      BASE_PATH: /discord
+      DATA_DIR: /data
+      # Discord Developer Portal > your app > Bot > token.
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      # Optional: pin a specific server; otherwise the bot's first guild is used.
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      # HTTP Basic auth for the channel-picker UI (placeholder auth for now).
+      DISCORD_UI_USER: ${DISCORD_UI_USER:-admin}
+      DISCORD_UI_PASSWORD: ${DISCORD_UI_PASSWORD:?set DISCORD_UI_PASSWORD in .env}
+    volumes:
+      - discord-data:/data
+    expose:
+      - "8080"
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
       - mediawiki
       - uploader
+      - discord-bot
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     expose:
@@ -87,3 +107,4 @@ services:
 volumes:
   db-data:
   mw-images:
+  discord-data:

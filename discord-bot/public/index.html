@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viscous — Discord Reader</title>
+  <style>
+    :root {
+      --bg: #0e1410;
+      --panel: #16201a;
+      --panel-2: #1d2a22;
+      --border: #2a3a30;
+      --text: #d9f2e4;
+      --muted: #8fae9c;
+      --green: #39ff88;
+      --green-dim: #1f7a4a;
+      --danger: #ff5c5c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+    header h1 span { color: var(--green); }
+    .status { margin-left: auto; font-size: 13px; color: var(--muted); }
+    .status b { color: var(--text); }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); margin-right: 6px; }
+    .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    main { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .bar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+    button {
+      background: var(--green-dim); color: #eafff2; border: 1px solid var(--green);
+      padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: var(--green); color: #04120a; }
+    button.ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+    button.ghost:hover { color: var(--text); background: var(--panel-2); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .hint { color: var(--muted); font-size: 13px; }
+    .cat { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .cat > .cat-head {
+      background: var(--panel); padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+      font-weight: 700; color: var(--green); text-transform: uppercase; font-size: 12px; letter-spacing: .6px;
+    }
+    .cat-head .count { margin-left: auto; color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .rows { background: var(--panel-2); }
+    label.row {
+      display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer;
+      border-top: 1px solid var(--border);
+    }
+    label.row:hover { background: #223026; }
+    label.row .name::before { content: "#"; color: var(--muted); margin-right: 3px; }
+    label.row.forum .name::before { content: "▤ "; color: var(--green); }
+    .badge { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--green-dim); color: #eafff2; }
+    input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--green); }
+    #msg { margin: 14px 0; padding: 10px 14px; border-radius: 8px; display: none; }
+    #msg.ok { display: block; background: #123322; border: 1px solid var(--green-dim); }
+    #msg.err { display: block; background: #331616; border: 1px solid var(--danger); color: #ffd7d7; }
+    #preview { margin-top: 26px; }
+    .thread {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: var(--panel);
+    }
+    .thread h4 { margin: 0 0 4px; font-size: 15px; }
+    .thread h4 a { color: var(--green); text-decoration: none; }
+    .thread .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .thread .tags span { font-size: 11px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; margin-right: 4px; }
+    .thread .excerpt { white-space: pre-wrap; color: #c6e6d3; font-size: 13.5px; margin-top: 6px; }
+    .group-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin: 20px 0 10px; }
+    a { color: var(--green); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Viscous <span>Discord Reader</span></h1>
+    <div class="status" id="status"><span class="dot"></span> connecting…</div>
+  </header>
+
+  <main>
+    <p class="hint">
+      Pick the channels the bot should read. Selecting a <b>category</b> reads every channel inside it;
+      selecting a <b>forum</b> (▤) reads all its threads — this is how the <b>meta-builds</b> posts come in.
+    </p>
+
+    <div class="bar">
+      <button id="save">Save selection</button>
+      <button id="reload" class="ghost">Reload channels</button>
+      <button id="read" class="ghost">Read now →</button>
+      <span class="hint" id="selcount"></span>
+    </div>
+
+    <div id="msg"></div>
+    <div id="tree"></div>
+
+    <div id="preview"></div>
+  </main>
+
+  <script>
+    const BASE = "__BASE_PATH__";
+    const $ = (s) => document.querySelector(s);
+    let selected = new Set();
+
+    function show(kind, text) {
+      const m = $("#msg"); m.className = kind; m.textContent = text;
+      if (kind === "ok") setTimeout(() => { m.className = ""; }, 3000);
+    }
+
+    async function api(path, opts) {
+      const r = await fetch(BASE + path, opts);
+      if (!r.ok) {
+        let e; try { e = (await r.json()).error; } catch { e = r.statusText; }
+        throw new Error(e || ("HTTP " + r.status));
+      }
+      return r.json();
+    }
+
+    async function loadStatus() {
+      try {
+        const s = await api("/api/status");
+        const on = s.botReady && s.guild;
+        $("#status").innerHTML =
+          `<span class="dot ${on ? "on" : ""}"></span>` +
+          (on ? `<b>${s.user}</b> · ${s.guild.name}` : "bot not ready");
+      } catch (e) {
+        $("#status").innerHTML = `<span class="dot"></span> ${e.message}`;
+      }
+    }
+
+    function updateCount() {
+      $("#selcount").textContent = selected.size + " selected";
+    }
+
+    async function loadTree() {
+      $("#tree").innerHTML = '<p class="hint">Loading channels…</p>';
+      try {
+        const [tree, sel] = await Promise.all([api("/api/tree"), api("/api/selection")]);
+        selected = new Set(sel.channelIds.map(String));
+        renderTree(tree);
+        updateCount();
+      } catch (e) {
+        $("#tree").innerHTML = `<p class="hint">Could not load channels: ${e.message}</p>`;
+      }
+    }
+
+    function channelRow(c) {
+      const checked = selected.has(String(c.id)) ? "checked" : "";
+      const forum = c.isForum ? "forum" : "";
+      const badge = c.isForum ? '<span class="badge">forum</span>' : "";
+      return `<label class="row ${forum}">
+        <input type="checkbox" data-id="${c.id}" ${checked}/>
+        <span class="name">${escapeHtml(c.name)}</span> ${badge}
+      </label>`;
+    }
+
+    function catBlock(id, title, channels) {
+      const checked = selected.has(String(id)) ? "checked" : "";
+      const head = id
+        ? `<div class="cat-head">
+             <input type="checkbox" data-id="${id}" ${checked} title="Read the whole category"/>
+             ${escapeHtml(title)}
+             <span class="count">${channels.length} channels</span>
+           </div>`
+        : `<div class="cat-head">${escapeHtml(title)}<span class="count">${channels.length} channels</span></div>`;
+      return `<div class="cat">${head}<div class="rows">${channels.map(channelRow).join("")}</div></div>`;
+    }
+
+    function renderTree(tree) {
+      let html = "";
+      for (const cat of tree.categories) html += catBlock(cat.id, cat.name, cat.channels);
+      if (tree.uncategorised.length) html += catBlock(null, "No category", tree.uncategorised);
+      if (!html) html = '<p class="hint">No readable channels found. Is the bot in the server with View Channel permission?</p>';
+      $("#tree").innerHTML = html;
+
+      $("#tree").querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const id = String(cb.dataset.id);
+          cb.checked ? selected.add(id) : selected.delete(id);
+          updateCount();
+        });
+      });
+    }
+
+    async function save() {
+      try {
+        await api("/api/selection", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelIds: [...selected] })
+        });
+        show("ok", "Saved " + selected.size + " channel(s).");
+      } catch (e) { show("err", "Save failed: " + e.message); }
+    }
+
+    async function readNow() {
+      $("#preview").innerHTML = '<p class="group-title">Reading…</p>';
+      try {
+        const data = await api("/api/content");
+        renderPreview(data);
+      } catch (e) {
+        $("#preview").innerHTML = `<p class="hint">Read failed: ${e.message}</p>`;
+      }
+    }
+
+    function renderThread(t) {
+      const when = t.createdTimestamp ? new Date(t.createdTimestamp).toLocaleDateString() : "";
+      const author = t.author ? "by " + escapeHtml(t.author.name) : "";
+      const tags = (t.tags || []).map(x => `<span>${escapeHtml(x)}</span>`).join("");
+      return `<div class="thread">
+        <h4><a href="${t.url}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a></h4>
+        <div class="meta">${author} ${when ? "· " + when : ""} ${t.messageCount != null ? "· " + t.messageCount + " msgs" : ""} ${t.archived ? "· archived" : ""}</div>
+        ${tags ? `<div class="tags">${tags}</div>` : ""}
+        ${t.excerpt ? `<div class="excerpt">${escapeHtml(t.excerpt)}</div>` : ""}
+      </div>`;
+    }
+
+    function renderChannel(c) {
+      if (c.error) return `<p class="hint">${escapeHtml(c.name || c.id)}: ${escapeHtml(c.error)}</p>`;
+      if (c.kind === "category") {
+        return `<div class="group-title">🗂 ${escapeHtml(c.name)}</div>` + (c.children || []).map(renderChannel).join("");
+      }
+      if (c.kind === "forum") {
+        return `<div class="group-title">▤ ${escapeHtml(c.name)} — ${c.threadCount} threads</div>` +
+          (c.threads || []).map(renderThread).join("");
+      }
+      if (c.kind === "thread") {
+        return `<div class="group-title"># ${escapeHtml(c.name)} (thread) — ${(c.messages || []).length} msgs</div>`;
+      }
+      const threads = (c.threads || []).map(renderThread).join("");
+      return `<div class="group-title"># ${escapeHtml(c.name)} — ${(c.messages || []).length} recent msgs</div>` + threads;
+    }
+
+    function renderPreview(data) {
+      if (!data.channels || !data.channels.length) {
+        $("#preview").innerHTML = `<p class="hint">${data.note || "Nothing to show."}</p>`;
+        return;
+      }
+      $("#preview").innerHTML = '<h3 class="group-title">Preview of read content</h3>' +
+        data.channels.map(renderChannel).join("");
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    $("#save").addEventListener("click", save);
+    $("#reload").addEventListener("click", loadTree);
+    $("#read").addEventListener("click", readNow);
+
+    loadStatus();
+    loadTree();
+    setInterval(loadStatus, 15000);
+  </script>
+</body>
+</html>

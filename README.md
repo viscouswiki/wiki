@@ -11,12 +11,14 @@ character *Viscous*, running on an Oracle Cloud Always Free ARM VM, fronted by a
 | `db`          | `mariadb:11`                     | Database (all wiki content lives here)           |
 | `mediawiki`   | `mediawiki:1.43`                 | MediaWiki app (Citizen + Fluent skins)           |
 | `uploader`    | built from `./uploader`          | R2 media uploader at `/upload` (group-gated)     |
-| `caddy`       | `caddy:2-alpine`                 | Path router: `/upload*` → uploader, else → wiki  |
+| `discord-bot` | built from `./discord-bot`       | Reads Discord (meta-builds) + picker UI at `/discord` |
+| `caddy`       | `caddy:2-alpine`                 | Path router: `/upload*`→uploader, `/discord*`→bot, else→wiki |
 | `cloudflared` | `cloudflare/cloudflared:latest`  | Outbound tunnel → serves everything via Cloudflare |
 
 ```
 Visitor ─HTTPS─> Cloudflare ─tunnel─> cloudflared ─> caddy ─┬─> mediawiki:80 ─> db (MariaDB)
-                                                            └─> uploader:8080 ─> R2
+                                                            ├─> uploader:8080 ─> R2
+                                                            └─> discord-bot:8080 ─> Discord API
 ```
 
 > The tunnel's public hostname for `viscous.wiki` must point at **`http://caddy:80`**
@@ -101,6 +103,15 @@ logged in and in the `videouploader` group — no separate login, no shared secr
 **Granting access:** the `videouploader` group is defined in
 `LocalSettings.custom.php`. Add members via **Special:UserRights** (you are a
 bureaucrat, so you can grant it to yourself and others).
+
+## Discord reader bot
+
+At **`https://viscous.wiki/discord`** (HTTP Basic auth for now) a read-only
+discord.js bot lets you pick which channels/categories to read — built for the
+**meta-builds** category, where each thread is a build. It returns each thread's
+title, author, tags, and starter-post excerpt as JSON, ready to become wiki pages
+later. Requires a Discord bot token + the Message Content intent; see
+[`discord-bot/README.md`](discord-bot/README.md) for setup.
 
 ## Backups
 

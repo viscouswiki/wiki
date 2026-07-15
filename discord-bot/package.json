@@ -1,0 +1,14 @@
+{
+  "name": "viscous-discord-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord reader bot + channel-picker web UI for the Viscous wiki (reads the meta-builds category)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "express": "^4.21.0"
+  }
+}

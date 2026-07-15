@@ -11,6 +11,12 @@
 		reverse_proxy uploader:8080
 	}
 
+	# Discord reader admin UI (HTTP Basic auth handled inside the app).
+	@discord path /discord /discord/*
+	handle @discord {
+		reverse_proxy discord-bot:8080
+	}
+
 	handle {
 		reverse_proxy mediawiki:80
 	}
