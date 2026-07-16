@@ -1,0 +1,149 @@
+/* ===== Viscous green accent for the Citizen skin =====
+ * Citizen builds its accent color from an OKLCH hue (modern browsers) with an
+ * HSL fallback, defined at :root. Shift the hue from blue (oklch 262 / hsl 220)
+ * to Viscous green and boost chroma for a toxic pop.
+ */
+:root {
+  --color-progressive-oklch__h: 145 !important;   /* OKLCH accent hue: blue -> green */
+  --color-progressive-oklch__c: 0.21 !important;  /* punchier toxic saturation      */
+  --color-progressive-hsl__h: 140 !important;     /* HSL fallback hue: blue -> green */
+}
+
+/* ============================================================
+ * Viscous Wiki — main page (hero banner + feature cards)
+ * MediaWiki strips raw <a> tags, so links are wikilinks styled
+ * via their anchors; display:contents unwraps the <p>/<span>
+ * MediaWiki inserts so the anchors become the grid/flex items.
+ * ============================================================ */
+.vw-hero {
+  position: relative;
+  margin: 0 0 1.5em;
+  padding: 46px 32px 40px;
+  border-radius: 18px;
+  border: 1px solid #26342b;
+  background:
+    radial-gradient(130% 150% at 50% -25%, rgba(57, 255, 136, 0.20), transparent 55%),
+    linear-gradient(180deg, #16211a, #0d130f);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  text-align: center;
+  overflow: hidden;
+}
+/* Soft drifting glow across the banner. */
+.vw-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% -10%;
+  background: radial-gradient(closest-side, rgba(57, 255, 136, 0.10), transparent);
+  animation: vw-hero-drift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes vw-hero-drift {
+  from { transform: translate3d(-8%, -6%, 0) scale(1); }
+  to   { transform: translate3d(8%, 6%, 0) scale(1.15); }
+}
+.vw-hero > * { position: relative; }
+.vw-hero-title {
+  font-size: 2.9em;
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: #eafff2;
+  background: linear-gradient(92deg, #eafff2 10%, #39ff88 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(57, 255, 136, 0.25);
+}
+.vw-hero-sub {
+  margin: 14px auto 0;
+  max-width: 640px;
+  color: #b9d8c6;
+  font-size: 1.1em;
+  line-height: 1.5;
+}
+
+/* Call-to-action buttons (wikilinks inside .vw-btn-* spans). */
+.vw-cta {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.vw-cta p,
+.vw-cta .vw-btn-primary,
+.vw-cta .vw-btn-ghost { display: contents; }
+.vw-cta a {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.vw-cta a:hover { transform: translateY(-2px); text-decoration: none; }
+.vw-btn-primary a {
+  color: #08130c;
+  background: linear-gradient(180deg, #57ffa6, #24d97d);
+  box-shadow: 0 8px 20px rgba(57, 255, 136, 0.35);
+}
+.vw-btn-primary a:hover { color: #08130c; box-shadow: 0 10px 26px rgba(57, 255, 136, 0.5); }
+.vw-btn-ghost a {
+  color: #cfeede;
+  background: #152018;
+  border: 1px solid #33473b;
+}
+.vw-btn-ghost a:hover { color: #eafff2; border-color: rgba(57, 255, 136, 0.5); }
+
+/* Feature cards (each card is a wikilink whose label holds the spans). */
+.vw-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 1.3em 0 1.6em;
+}
+.vw-cards p { display: contents; }
+.vw-cards a {
+  display: block;
+  padding: 18px 18px 16px;
+  border-radius: 14px;
+  border: 1px solid #26342b;
+  background: linear-gradient(180deg, #16211a, #121a15);
+  text-decoration: none;
+  transition: transform 0.13s ease, border-color 0.13s ease, box-shadow 0.13s ease;
+}
+.vw-cards a:hover {
+  transform: translateY(-3px);
+  border-color: rgba(57, 255, 136, 0.5);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.42);
+  text-decoration: none;
+}
+.vw-card-ico {
+  font-size: 1.75em;
+  line-height: 1;
+  display: block;
+  margin-bottom: 9px;
+  filter: drop-shadow(0 0 8px rgba(57, 255, 136, 0.35));
+}
+.vw-card-title {
+  display: block;
+  font-weight: 700;
+  color: #39ff88;
+  font-size: 1.12em;
+}
+.vw-card-desc {
+  display: block;
+  color: #9fbcac;
+  font-size: 0.9em;
+  margin-top: 3px;
+}
+.vw-foot {
+  margin-top: 1.2em;
+  color: #7f9a8a;
+  font-size: 0.9em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vw-hero::before { animation: none; }
+}

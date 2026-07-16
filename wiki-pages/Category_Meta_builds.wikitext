@@ -1,0 +1,7 @@
+'''Meta builds''' are the current top Viscous builds. Visiting <code>/wiki/Builds/meta/&lt;build id&gt;</code> as an admin auto-creates the page here '''and''' a permanent canonical page at <code>Builds/&lt;build id&gt;</code>.
+
+When a build falls out of the meta, delete its <code>Builds/meta/…</code> page — the canonical <code>Builds/…</code> page (in [[:Category:Builds]]) stays as a permanent record.
+
+<deadlockbuildindex category="Meta builds" />
+
+[[Category:Builds]]

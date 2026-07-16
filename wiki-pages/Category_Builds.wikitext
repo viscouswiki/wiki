@@ -1,0 +1,9 @@
+'''Builds''' collects the current meta and community builds for [[Viscous]]. Each build has its own page with an item build order, ability leveling order, and playstyle notes.
+
+== Browse builds ==
+<deadlockbuildindex category="Builds" />
+
+== Adding a build ==
+Create a new page named after the build, then paste the [[Template:Build|Build template]] at the top and fill in the sections. See [[Template:Build]] for the field reference. Every page using the template is listed here automatically.
+
+__EXPANDCONTENTS__

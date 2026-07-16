@@ -194,6 +194,7 @@ class Hooks {
 	public static function renderBuildIndex( $input, array $args, Parser $parser, PPFrame $frame ) {
 		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
 		$category = isset( $args['category'] ) ? trim( (string)$args['category'] ) : 'Builds';
+		$limit = isset( $args['limit'] ) ? max( 0, (int)$args['limit'] ) : 0;
 		try {
 			$members = self::categoryBuildIds( $category );
 			if ( !$members ) {
@@ -234,13 +235,28 @@ class Hooks {
 					'hasMeta' => !empty( $hasMeta[$member['id']] ),
 				];
 			}
-			usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
+			$total = count( $entries );
+			if ( $limit > 0 ) {
+				// Limited views (e.g. the home page) show the freshest builds
+				// first — a higher page id is a more recently created page.
+				usort( $entries, static fn ( $a, $b ) =>
+					$b['title']->getArticleID() <=> $a['title']->getArticleID() );
+				$entries = array_slice( $entries, 0, $limit );
+			} else {
+				usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
+			}
 
 			$cards = '';
 			foreach ( $entries as $e ) {
 				$cards .= self::buildIndexCard( $e, $heroes, $tags );
 			}
-			return '<div class="dlb-index">' . $cards . '</div>';
+			$more = '';
+			if ( $limit > 0 && $total > $limit ) {
+				$catTitle = \Title::makeTitle( NS_CATEGORY, $category );
+				$more = '<a class="dlb-index-more" href="' . htmlspecialchars( $catTitle->getLocalURL() )
+					. '">View all ' . $total . ' builds &rarr;</a>';
+			}
+			return '<div class="dlb-index">' . $cards . '</div>' . $more;
 		} catch ( \Throwable $ex ) {
 			return self::notice( 'error', 'Could not load the build index right now.' );
 		}

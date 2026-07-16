@@ -106,6 +106,14 @@
 	border-radius: 999px;
 	padding: 1px 8px;
 }
+.dlb-index-more {
+	display: inline-block;
+	margin: 10px 2px 0;
+	font-weight: 600;
+	color: #39ff88;
+	text-decoration: none;
+}
+.dlb-index-more:hover { text-decoration: underline; }
 
 .deadlock-build {
 	border: 1px solid #26342b;
