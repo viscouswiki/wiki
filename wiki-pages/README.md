@@ -32,5 +32,13 @@ Provided by the `DeadlockBuilds` extension. Attributes:
 - `category` — category to list (default `Builds`).
 - `limit` — max cards to show; when set, shows the newest builds first and
   adds a "View all N builds →" link (the home page uses `limit="6"`).
+- `order` — manual order, a list of build ids, e.g. `order="583665, 1102"`.
+  Listed ids come first in that sequence; anything unlisted follows
+  alphabetically. Combine with `limit` to curate exactly which builds show
+  and in what order.
 
 Builds that also have a `Builds/meta/<id>` page get a pulsing gold star.
+
+The grids embedding this tag (home page, `Category:Builds`,
+`Category:Meta builds`) refresh automatically when a build page is created,
+edited, or deleted.

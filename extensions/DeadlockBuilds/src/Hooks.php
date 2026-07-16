@@ -81,8 +81,11 @@ class Hooks {
 			$isMeta = $m[1] !== '';
 			$buildId = $m[2];
 
-			// Respect a prior deletion — don't resurrect what someone removed.
-			if ( $title->isDeletedQuick() ) {
+			// A meta page is disposable: visiting Builds/meta/<id> again should
+			// re-add it as a meta build even after it was deleted. The permanent
+			// canonical Builds/<id> page, by contrast, still respects deletion so
+			// a build can be removed for good.
+			if ( !$isMeta && $title->isDeletedQuick() ) {
 				return true;
 			}
 
@@ -187,6 +190,43 @@ class Hooks {
 	}
 
 	/**
+	 * When a build page (Builds/<id> or Builds/meta/<id>) is created, edited or
+	 * deleted, purge the pages that embed a <deadlockbuildindex> so the browse
+	 * grids reflect the change immediately rather than serving a stale cache.
+	 */
+	public static function onPageDeleteComplete( $page, $deleter, $reason, $pageID, $deletedRev, $logEntry, $archivedRevisionCount ) {
+		self::purgeBuildIndexHosts( \Title::castFromPageIdentity( $page ) );
+	}
+
+	public static function onPageSaveComplete( $wikiPage, $user, $summary, $flags, $revisionRecord, $editResult ) {
+		self::purgeBuildIndexHosts( $wikiPage->getTitle() );
+	}
+
+	/** Purge the known <deadlockbuildindex> host pages for a build-page change. */
+	private static function purgeBuildIndexHosts( $changed ): void {
+		try {
+			if ( !$changed || $changed->getNamespace() !== NS_MAIN
+				|| !preg_match( '#^Builds/(?:meta/)?\d+$#', $changed->getText() )
+			) {
+				return;
+			}
+			$wpf = MediaWikiServices::getInstance()->getWikiPageFactory();
+			$hosts = [
+				\Title::newMainPage(),
+				\Title::makeTitle( NS_CATEGORY, 'Builds' ),
+				\Title::makeTitle( NS_CATEGORY, 'Meta builds' ),
+			];
+			foreach ( $hosts as $host ) {
+				if ( $host && $host->exists() ) {
+					$wpf->newFromTitle( $host )->doPurge();
+				}
+			}
+		} catch ( \Throwable $e ) {
+			// A failed purge must never break a save or delete.
+		}
+	}
+
+	/**
 	 * <deadlockbuildindex category="Builds"/> — a browse grid of the build
 	 * pages in a category, shown by build name (with hero + tags) instead of
 	 * the numeric page title. Reads names from the cached build API.
@@ -247,14 +287,26 @@ class Hooks {
 				];
 			}
 			$total = count( $entries );
-			if ( $limit > 0 ) {
-				// Limited views (e.g. the home page) show the freshest builds
-				// first — a higher page id is a more recently created page.
+			$order = self::parseOrderArg( $args['order'] ?? '' );
+			if ( $order ) {
+				// Manual order: build ids listed in `order` come first, in that
+				// sequence; anything unlisted follows alphabetically.
+				$last = count( $order );
+				usort( $entries, static function ( $a, $b ) use ( $order, $last ) {
+					$pa = $order[$a['id']] ?? $last;
+					$pb = $order[$b['id']] ?? $last;
+					return ( $pa <=> $pb ) ?: strcasecmp( $a['name'], $b['name'] );
+				} );
+			} elseif ( $limit > 0 ) {
+				// Limited views (e.g. the home page) default to the freshest
+				// builds first — a higher page id is a more recently created page.
 				usort( $entries, static fn ( $a, $b ) =>
 					$b['title']->getArticleID() <=> $a['title']->getArticleID() );
-				$entries = array_slice( $entries, 0, $limit );
 			} else {
 				usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
+			}
+			if ( $limit > 0 ) {
+				$entries = array_slice( $entries, 0, $limit );
 			}
 
 			$cards = '';
@@ -271,6 +323,23 @@ class Hooks {
 		} catch ( \Throwable $ex ) {
 			return self::notice( 'error', 'Could not load the build index right now.' );
 		}
+	}
+
+	/** Parse an `order="583083, 1102, ..."` attribute into id => position. */
+	private static function parseOrderArg( string $raw ): array {
+		$raw = trim( $raw );
+		if ( $raw === '' ) {
+			return [];
+		}
+		$order = [];
+		$pos = 0;
+		foreach ( preg_split( '/[\s,]+/', $raw ) as $tok ) {
+			$id = preg_replace( '/\D/', '', (string)$tok );
+			if ( $id !== '' && !isset( $order[$id] ) ) {
+				$order[$id] = $pos++;
+			}
+		}
+		return $order;
 	}
 
 	/** Titles + build ids of the Builds/<id> pages in a category. */

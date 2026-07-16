@@ -17,7 +17,9 @@
 	"Hooks": {
 		"ParserFirstCallInit": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onParserFirstCallInit",
 		"ShowMissingArticle": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onShowMissingArticle",
-		"CategoryViewer::generateLink": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onCategoryViewerGenerateLink"
+		"CategoryViewer::generateLink": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onCategoryViewerGenerateLink",
+		"PageDeleteComplete": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onPageDeleteComplete",
+		"PageSaveComplete": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onPageSaveComplete"
 	},
 	"AvailableRights": [
 		"deadlock-autocreatebuild"
