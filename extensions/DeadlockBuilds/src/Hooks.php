@@ -200,6 +200,17 @@ class Hooks {
 			if ( !$members ) {
 				return self::notice( 'notice', 'No builds are listed in this category yet.' );
 			}
+
+			// Keep the index fresh as builds enter/leave the category without a
+			// manual purge: register each listed page as a link so deleting or
+			// editing one purges this page through the backlink cache, and cap
+			// the parser-cache lifetime so newly added builds appear on their own.
+			$out = $parser->getOutput();
+			$out->updateCacheExpiry( 900 );
+			foreach ( $members as $member ) {
+				$out->addLink( $member['title'] );
+			}
+
 			$heroes = self::assetMap( 'heroes' );
 			$tags   = self::assetMap( 'build-tags' );
 
