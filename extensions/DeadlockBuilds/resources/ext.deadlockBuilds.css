@@ -143,6 +143,16 @@
 }
 .dlb-index-more:hover { text-decoration: underline; }
 
+/* Popularity: favourite count + trending badge (build header & index cards). */
+.dlb-fav { white-space: nowrap; }
+.dlb-fav-heart { color: #ff6b81; margin-right: 3px; }
+.dlb-trending { color: #ffcf8a; font-weight: 600; white-space: nowrap; }
+.dlb-index-tag.dlb-trending {
+	background: #2a2113;
+	border-color: #5a4620;
+	color: #ffcf8a;
+}
+
 .deadlock-build {
 	border: 1px solid #26342b;
 	border-radius: 14px;
@@ -594,4 +604,111 @@
 	border-color: #6b5a2a;
 	background: #241f14;
 	color: #ffe9b0;
+}
+
+/* Item gallery (<deadlockitemindex>) ------------------------------------ */
+.deadlock-build.dlb-itemindex { max-width: 1120px; }
+.dlb-itemindex .dlb-slot-weapon   .dlb-cat-name::before { background: #e0913b; }
+.dlb-itemindex .dlb-slot-vitality .dlb-cat-name::before { background: #57c34a; }
+.dlb-itemindex .dlb-slot-spirit   .dlb-cat-name::before { background: #b06cf0; }
+
+/* Share button (build header) ------------------------------------------- */
+.deadlock-build .dlb-head { position: relative; }
+.deadlock-build .dlb-share {
+	margin-left: auto;
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 13px;
+	border-radius: 999px;
+	border: 1px solid #33473b;
+	background: #152018;
+	color: #cfeede;
+	font-size: 0.82em;
+	font-weight: 600;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.deadlock-build .dlb-share:hover { border-color: rgba(57, 255, 136, 0.5); color: #eafff2; }
+.deadlock-build .dlb-share.dlb-share-done { border-color: #39ff88; color: #39ff88; }
+.deadlock-build .dlb-share-ico { font-size: 1.05em; line-height: 1; }
+
+/* Search box (<deadlocksearch>) ----------------------------------------- */
+.dlb-search {
+	display: flex;
+	gap: 8px;
+	max-width: 460px;
+	margin: 22px auto 0;
+}
+.dlb-search-input {
+	flex: 1;
+	min-width: 0;
+	padding: 10px 16px;
+	border-radius: 999px;
+	border: 1px solid #33473b;
+	background: rgba(9, 15, 11, 0.7);
+	color: #eafff2;
+	font-size: 0.98em;
+}
+.dlb-search-input::placeholder { color: #7f9a8a; }
+.dlb-search-input:focus {
+	outline: none;
+	border-color: #39ff88;
+	box-shadow: 0 0 0 3px rgba(57, 255, 136, 0.15);
+}
+.dlb-search-btn {
+	padding: 10px 18px;
+	border-radius: 999px;
+	border: none;
+	background: linear-gradient(180deg, #57ffa6, #24d97d);
+	color: #08130c;
+	font-weight: 700;
+	cursor: pointer;
+}
+.dlb-search-btn:hover { box-shadow: 0 8px 20px rgba(57, 255, 136, 0.35); }
+
+/* Recent updates (<deadlockrecent>) ------------------------------------- */
+.dlb-recent {
+	list-style: none;
+	margin: 0.5em 0;
+	padding: 0;
+	max-width: 900px;
+}
+.dlb-recent-item {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 7px 2px;
+	border-bottom: 1px solid rgba(42, 58, 48, 0.5);
+}
+.dlb-recent-link { color: #39ff88; text-decoration: none; font-weight: 600; }
+.dlb-recent-link:hover { text-decoration: underline; }
+.dlb-recent-new {
+	font-size: 0.66em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #08130c;
+	background: #39ff88;
+	border-radius: 999px;
+	padding: 1px 7px;
+}
+.dlb-recent-when {
+	margin-left: auto;
+	color: #7f9a8a;
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+/* Responsive ------------------------------------------------------------ */
+@media (max-width: 640px) {
+	.deadlock-build { padding: 14px 14px; }
+	.deadlock-build .dlb-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+	.deadlock-build .dlb-title { font-size: 1.15em; }
+	.deadlock-build .dlb-head { flex-wrap: wrap; }
+	.deadlock-build .dlb-share { align-self: center; }
+	.deadlock-build .dlb-pop { width: min(230px, 74vw); }
+	.dlb-index { grid-template-columns: 1fr; }
 }

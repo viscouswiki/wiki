@@ -19,7 +19,8 @@
 		"ShowMissingArticle": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onShowMissingArticle",
 		"CategoryViewer::generateLink": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onCategoryViewerGenerateLink",
 		"PageDeleteComplete": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onPageDeleteComplete",
-		"PageSaveComplete": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onPageSaveComplete"
+		"PageSaveComplete": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onPageSaveComplete",
+		"BeforePageDisplay": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onBeforePageDisplay"
 	},
 	"AvailableRights": [
 		"deadlock-autocreatebuild"
@@ -33,6 +34,11 @@
 		"ext.deadlockBuilds": {
 			"styles": [
 				"ext.deadlockBuilds.css"
+			]
+		},
+		"ext.deadlockBuilds.share": {
+			"scripts": [
+				"ext.deadlockBuilds.share.js"
 			]
 		}
 	},

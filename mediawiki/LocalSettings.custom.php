@@ -67,6 +67,9 @@ $wgLogos = [
 // rest of the build/hero imagery.
 $wgFavicon = 'https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/viscous_sm.png';
 
+// Hide the "Powered by MediaWiki" footer badge.
+unset( $wgFooterIcons['poweredby'] );
+
 // ---- Uploads -------------------------------------------------------------
 // Native MediaWiki file uploads (images/small files). Large media/video go to
 // R2 via the separate uploader at /upload.

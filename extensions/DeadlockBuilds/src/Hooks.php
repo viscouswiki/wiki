@@ -25,6 +25,9 @@ class Hooks {
 		$parser->setHook( 'deadlockbuild', [ self::class, 'renderTag' ] );
 		$parser->setHook( 'deadlockitem', [ self::class, 'renderItemTagEntry' ] );
 		$parser->setHook( 'deadlockbuildindex', [ self::class, 'renderBuildIndex' ] );
+		$parser->setHook( 'deadlockitemindex', [ self::class, 'renderItemIndex' ] );
+		$parser->setHook( 'deadlockrecent', [ self::class, 'renderRecent' ] );
+		$parser->setHook( 'deadlocksearch', [ self::class, 'renderSearch' ] );
 	}
 
 	/**
@@ -33,6 +36,7 @@ class Hooks {
 	 */
 	public static function renderTag( $input, array $args, Parser $parser, PPFrame $frame ) {
 		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		$parser->getOutput()->addModules( [ 'ext.deadlockBuilds.share' ] );
 
 		$id = isset( $args['id'] ) ? preg_replace( '/[^0-9]/', '', (string)$args['id'] ) : '';
 		if ( $id === '' ) {
@@ -227,6 +231,83 @@ class Hooks {
 	}
 
 	/**
+	 * Add OpenGraph / Twitter-card meta so shared links (Discord, Twitter, etc.)
+	 * get a rich preview. Build and item pages use their real name, description,
+	 * and art; everything else falls back to the wiki title + logo.
+	 */
+	public static function onBeforePageDisplay( $out, $skin ): void {
+		try {
+			$title = $out->getTitle();
+			if ( !$title ) {
+				return;
+			}
+			$ogType  = 'website';
+			$ogTitle = $title->getPrefixedText();
+			$ogDesc  = "The community guide to Deadlock's hero Viscous — abilities, "
+				. "item builds, and the current meta.";
+			$ogImage = 'https://media.viscous.wiki/branding/viscous-logo.png';
+
+			if ( $title->getNamespace() === NS_MAIN
+				&& preg_match( '#^Builds/(?:meta/)?(\d+)$#', $title->getText(), $m )
+			) {
+				$b = self::fetchBuild( $m[1] );
+				if ( $b ) {
+					$name = trim( (string)( $b['name'] ?? '' ) );
+					if ( $name !== '' ) {
+						$ogTitle = $name;
+					}
+					$d = trim( (string)( $b['description'] ?? '' ) );
+					$ogDesc = $d !== ''
+						? mb_strimwidth( preg_replace( '/\s+/', ' ', $d ), 0, 200, '…' )
+						: 'A Viscous build for Deadlock — items, ability order, and playstyle.';
+					$heroes = self::assetMap( 'heroes' );
+					$hid = $b['hero_id'] ?? null;
+					if ( $hid !== null && !empty( $heroes[$hid]['image'] ) ) {
+						$ogImage = $heroes[$hid]['image'];
+					}
+					$ogType = 'article';
+				}
+			} elseif ( defined( 'NS_ITEM' ) && $title->getNamespace() === NS_ITEM ) {
+				$items = self::assetMap( 'items' );
+				$id = self::nameIndex()[strtolower( trim( $title->getText() ) )] ?? null;
+				$it = $id !== null ? ( $items[$id] ?? null ) : null;
+				if ( $it ) {
+					$ogTitle = (string)$it['name'];
+					$d = trim( (string)( $it['desc'] ?? '' ) );
+					$ogDesc = $d !== ''
+						? mb_strimwidth( preg_replace( '/\s+/', ' ', $d ), 0, 200, '…' )
+						: 'A Deadlock item for Viscous.';
+					if ( !empty( $it['image'] ) ) {
+						$ogImage = (string)$it['image'];
+					}
+					$ogType = 'article';
+				}
+			}
+
+			$tags = [
+				'og:title'       => $ogTitle,
+				'og:description' => $ogDesc,
+				'og:image'       => $ogImage,
+				'og:type'        => $ogType,
+				'og:url'         => $title->getFullURL(),
+				'og:site_name'   => 'The Viscous Wiki',
+				'twitter:card'   => 'summary_large_image',
+				'twitter:title'  => $ogTitle,
+				'twitter:description' => $ogDesc,
+				'twitter:image'  => $ogImage,
+			];
+			foreach ( $tags as $prop => $content ) {
+				$attr = str_starts_with( $prop, 'twitter:' ) ? 'name' : 'property';
+				$out->addHeadItem( 'dlb-meta-' . $prop,
+					'<meta ' . $attr . '="' . htmlspecialchars( $prop, ENT_QUOTES )
+					. '" content="' . htmlspecialchars( (string)$content, ENT_QUOTES ) . '">' );
+			}
+		} catch ( \Throwable $e ) {
+			// Never let preview metadata break page rendering.
+		}
+	}
+
+	/**
 	 * <deadlockbuildindex category="Builds"/> — a browse grid of the build
 	 * pages in a category, shown by build name (with hero + tags) instead of
 	 * the numeric page title. Reads names from the cached build API.
@@ -387,10 +468,16 @@ class Hooks {
 		$h .= '<span class="dlb-index-name">' . htmlspecialchars( $e['name'] ) . '</span>';
 		$meta = $hero ? htmlspecialchars( $hero['name'] ) . ' · ' : '';
 		$meta .= '#' . htmlspecialchars( $e['id'] );
+		if ( isset( $build['num_favorites'] ) && $build['num_favorites'] !== null ) {
+			$meta .= ' · ' . self::favHtml( (int)$build['num_favorites'] );
+		}
 		$h .= '<span class="dlb-index-meta">' . $meta . '</span>';
 
 		$btags = is_array( $build['tags'] ?? null ) ? $build['tags'] : [];
 		$tagHtml = '';
+		if ( !empty( $build['num_weekly_favorites'] ) ) {
+			$tagHtml .= '<span class="dlb-index-tag dlb-trending" title="Popular this week">&#128293; Trending</span>';
+		}
 		foreach ( array_slice( $btags, 0, 3 ) as $tid ) {
 			if ( isset( $tags[$tid]['name'] ) ) {
 				$tagHtml .= '<span class="dlb-index-tag">' . htmlspecialchars( $tags[$tid]['name'] ) . '</span>';
@@ -401,6 +488,199 @@ class Hooks {
 		}
 		$h .= '</span></a>';
 		return $h;
+	}
+
+	/** Compact human count: 431 -> "431", 12300 -> "12.3k", 1500000 -> "1.5M". */
+	private static function fmtCount( int $n ): string {
+		if ( $n >= 1000000 ) {
+			return rtrim( rtrim( number_format( $n / 1000000, 1 ), '0' ), '.' ) . 'M';
+		}
+		if ( $n >= 1000 ) {
+			return rtrim( rtrim( number_format( $n / 1000, 1 ), '0' ), '.' ) . 'k';
+		}
+		return (string)$n;
+	}
+
+	/** A heart + favorite-count badge. */
+	private static function favHtml( int $n ): string {
+		return '<span class="dlb-fav" title="' . number_format( $n ) . ' favorites">'
+			. '<span class="dlb-fav-heart">&#9829;</span>' . self::fmtCount( $n ) . '</span>';
+	}
+
+	/**
+	 * <deadlockitemindex/> — a browsable gallery of every shop item, grouped by
+	 * slot (Weapon / Vitality / Spirit) and sorted by tier, cost, then name.
+	 * Optional slot="weapon|vitality|spirit" limits it to one column type.
+	 */
+	public static function renderItemIndex( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		try {
+			$items = self::assetMap( 'items' );
+			$labels = [ 'weapon' => 'Weapon', 'vitality' => 'Vitality', 'spirit' => 'Spirit' ];
+			$wantSlot = isset( $args['slot'] ) ? strtolower( trim( (string)$args['slot'] ) ) : '';
+			$groups = [ 'weapon' => [], 'vitality' => [], 'spirit' => [] ];
+			foreach ( $items as $it ) {
+				$slot = strtolower( (string)( $it['slot'] ?? '' ) );
+				if ( !isset( $groups[$slot] ) ) {
+					continue; // abilities and non-shop entries
+				}
+				if ( $wantSlot !== '' && $slot !== $wantSlot ) {
+					continue;
+				}
+				$groups[$slot][] = $it;
+			}
+			$out = '<div class="deadlock-build dlb-itemindex">' . self::soulDefs();
+			$any = false;
+			foreach ( $labels as $slotKey => $slotLabel ) {
+				$list = $groups[$slotKey];
+				if ( !$list ) {
+					continue;
+				}
+				$any = true;
+				usort( $list, static function ( $a, $b ) {
+					$ta = (int)( $a['tier'] ?? 0 );
+					$tb = (int)( $b['tier'] ?? 0 );
+					if ( $ta !== $tb ) {
+						return $ta <=> $tb;
+					}
+					$ca = (int)( $a['cost'] ?? 0 );
+					$cb = (int)( $b['cost'] ?? 0 );
+					return ( $ca <=> $cb ) ?: strcasecmp( (string)$a['name'], (string)$b['name'] );
+				} );
+				$tiles = '';
+				foreach ( $list as $it ) {
+					$tiles .= self::itemGalleryTile( $it );
+				}
+				$out .= '<div class="dlb-cat dlb-slot-group dlb-slot-' . $slotKey . '">'
+					. '<div class="dlb-cat-head"><div class="dlb-cat-name">' . htmlspecialchars( $slotLabel )
+					. '</div><div class="dlb-cat-count">' . count( $list ) . ' items</div></div>'
+					. '<div class="dlb-grid">' . $tiles . '</div></div>';
+			}
+			$out .= '</div>';
+			return $any ? $out : self::notice( 'notice', 'No items are available right now.' );
+		} catch ( \Throwable $e ) {
+			return self::notice( 'error', 'Could not load the item list right now.' );
+		}
+	}
+
+	/** A compact gallery tile (icon + name + cost) linking to the item's page. */
+	private static function itemGalleryTile( array $it ): string {
+		$slot   = self::slotClass( $it['slot'] ?? '' );
+		$tier   = $it['tier'] ?? null;
+		$cost   = $it['cost'] ?? null;
+		$active = !empty( $it['active'] );
+		$url    = self::itemPageUrl( (string)( $it['name'] ?? '' ) );
+		$cls    = 'dlb-tile dlb-slot-' . $slot . ( $active ? ' dlb-active' : '' );
+		$t = $url !== null
+			? '<a class="' . $cls . '" href="' . htmlspecialchars( $url ) . '">'
+			: '<div class="' . $cls . '">';
+		$t .= '<div class="dlb-icon-wrap">';
+		if ( !empty( $it['image'] ) ) {
+			$t .= '<img class="dlb-icon" src="' . htmlspecialchars( $it['image'] )
+				. '" alt="' . htmlspecialchars( $it['name'] ) . '" width="46" height="46" loading="lazy">';
+		}
+		if ( $tier !== null ) {
+			$t .= '<span class="dlb-tier">' . htmlspecialchars( (string)$tier ) . '</span>';
+		}
+		if ( $active ) {
+			$t .= '<span class="dlb-act" title="Active item">A</span>';
+		}
+		$t .= '</div>';
+		$t .= '<div class="dlb-tname">' . htmlspecialchars( $it['name'] ) . '</div>';
+		if ( $cost !== null ) {
+			$t .= '<div class="dlb-tcost">' . self::costHtml( (int)$cost ) . '</div>';
+		}
+		$t .= $url !== null ? '</a>' : '</div>';
+		return $t;
+	}
+
+	/**
+	 * <deadlockrecent limit="6"/> — a compact list of the most recently edited
+	 * content pages (main, Item and Category namespaces) with relative times.
+	 */
+	public static function renderRecent( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$out = $parser->getOutput();
+		$out->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		$out->updateCacheExpiry( 300 );
+		$limit = isset( $args['limit'] ) ? max( 1, min( 20, (int)$args['limit'] ) ) : 6;
+		try {
+			$services = MediaWikiServices::getInstance();
+			$dbr = $services->getConnectionProvider()->getReplicaDatabase();
+			$ns = [ NS_MAIN ];
+			if ( defined( 'NS_ITEM' ) ) {
+				$ns[] = NS_ITEM;
+			}
+			$ns[] = NS_CATEGORY;
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [ 'rc_namespace', 'rc_title', 'rc_timestamp', 'rc_this_oldid', 'rc_new' ] )
+				->distinct()
+				->from( 'recentchanges' )
+				->where( [
+					'rc_namespace' => $ns,
+					'rc_type' => [ RC_EDIT, RC_NEW ],
+					$dbr->expr( 'rc_bot', '=', 0 ),
+				] )
+				->orderBy( 'rc_timestamp', 'DESC' )
+				->limit( 60 )
+				->caller( __METHOD__ )
+				->fetchResultSet();
+
+			$lang = $services->getContentLanguage();
+			$seen = [];
+			$rows = '';
+			$count = 0;
+			foreach ( $res as $r ) {
+				$title = \Title::makeTitle( (int)$r->rc_namespace, $r->rc_title );
+				$key = $title->getPrefixedDBkey();
+				if ( isset( $seen[$key] ) || !$title->exists() ) {
+					continue;
+				}
+				$seen[$key] = true;
+				$label = $title->getText();
+				// Prefer a build's display name over the numeric page title.
+				if ( $title->getNamespace() === NS_MAIN
+					&& preg_match( '#^Builds/(?:meta/)?(\d+)$#', $title->getText(), $m )
+				) {
+					$b = self::fetchBuild( $m[1] );
+					if ( $b && trim( (string)( $b['name'] ?? '' ) ) !== '' ) {
+						$label = trim( (string)$b['name'] );
+					}
+				}
+				$when = $lang->getHumanTimestamp(
+					\MWTimestamp::getInstance( $r->rc_timestamp ) );
+				$rows .= '<li class="dlb-recent-item"><a class="dlb-recent-link" href="'
+					. htmlspecialchars( $title->getLocalURL() ) . '">' . htmlspecialchars( $label ) . '</a>'
+					. ( $r->rc_new ? '<span class="dlb-recent-new">new</span>' : '' )
+					. '<span class="dlb-recent-when">' . htmlspecialchars( $when ) . '</span></li>';
+				$out->addLink( $title );
+				if ( ++$count >= $limit ) {
+					break;
+				}
+			}
+			if ( $rows === '' ) {
+				return '';
+			}
+			return '<ul class="dlb-recent">' . $rows . '</ul>';
+		} catch ( \Throwable $e ) {
+			return '';
+		}
+	}
+
+	/**
+	 * <deadlocksearch placeholder="..."/> — a styled search box that submits to
+	 * Special:Search. Output is raw HTML (a real <form>, which wikitext strips).
+	 */
+	public static function renderSearch( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		$placeholder = isset( $args['placeholder'] )
+			? (string)$args['placeholder'] : 'Search builds, items, abilities…';
+		$action = \SpecialPage::getTitleFor( 'Search' )->getLocalURL();
+		return '<form class="dlb-search" action="' . htmlspecialchars( $action ) . '" method="get" role="search">'
+			. '<input type="hidden" name="title" value="' . htmlspecialchars( \SpecialPage::getTitleFor( 'Search' )->getPrefixedText() ) . '">'
+			. '<input class="dlb-search-input" type="search" name="search" autocomplete="off"'
+			. ' placeholder="' . htmlspecialchars( $placeholder ) . '" aria-label="Search the wiki">'
+			. '<button class="dlb-search-btn" type="submit">Search</button>'
+			. '</form>';
 	}
 
 	/**
@@ -457,8 +737,20 @@ class Hooks {
 		$h .= '<div class="dlb-hero">'
 			. ( $hero ? htmlspecialchars( $hero['name'] ) . ' · ' : '' )
 			. '<span class="dlb-buildid">Build #' . htmlspecialchars( $id ) . '</span>'
+			. ( isset( $build['num_favorites'] ) && $build['num_favorites'] !== null
+				? ' · ' . self::favHtml( (int)$build['num_favorites'] ) : '' )
+			. ( !empty( $build['num_weekly_favorites'] )
+				? ' · <span class="dlb-trending" title="Popular this week">&#128293; Trending</span>' : '' )
 			. '</div>';
-		$h .= '</div></div>';
+		$h .= '</div>';
+		// Share (copy canonical build link); wired up by ext.deadlockBuilds.share.
+		$canonTitle = \Title::newFromText( "Builds/$id" );
+		$canonAttr = $canonTitle ? ' data-dlb-url="' . htmlspecialchars( $canonTitle->getFullURL() ) . '"' : '';
+		$h .= '<button type="button" class="dlb-share" data-dlb-share' . $canonAttr
+			. ' title="Copy a link to this build">'
+			. '<span class="dlb-share-ico">&#128279;</span>'
+			. '<span class="dlb-share-label">Share</span></button>';
+		$h .= '</div>';
 
 		// Tags.
 		$btags = is_array( $build['tags'] ?? null ) ? $build['tags'] : [];
@@ -524,11 +816,14 @@ class Hooks {
 		// Footer + legend.
 		$apiBase = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
 		$src = $apiBase . '/v1/builds?build_id=' . rawurlencode( $id );
+		$updatedTs = isset( $build['last_updated_timestamp'] ) ? (int)$build['last_updated_timestamp'] : 0;
+		$updatedStr = $updatedTs > 0 ? gmdate( 'j M Y', $updatedTs ) : '';
 		$h .= '<div class="dlb-foot">'
 			. '<span class="dlb-legend"><span class="dlb-key dlb-slot-weapon"></span>Weapon '
 			. '<span class="dlb-key dlb-slot-vitality"></span>Vitality '
 			. '<span class="dlb-key dlb-slot-spirit"></span>Spirit</span>'
 			. '<span class="dlb-src">'
+			. ( $updatedStr !== '' ? 'Updated ' . htmlspecialchars( $updatedStr ) . ' · ' : '' )
 			. ( $version !== null ? 'v' . htmlspecialchars( (string)$version ) . ' · ' : '' )
 			. 'Data: <a href="' . htmlspecialchars( $src ) . '" rel="nofollow noopener" target="_blank">deadlock-api.com ' . htmlspecialchars( $id ) . '</a>'
 			. '</span></div>';
@@ -805,7 +1100,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsBuildTtl', 3600 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-build', $id ),
+			$cache->makeKey( 'deadlockbuilds-build', $id, 'v2' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $id ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -815,7 +1110,12 @@ class Hooks {
 					$setTtl = 60; // don't cache a miss/outage for long
 					return [ 'ok' => false ];
 				}
-				return [ 'ok' => true, 'build' => $data[0]['hero_build'] ];
+				// The community-facing popularity counters live one level up from
+				// hero_build; fold them in so callers see them on the build.
+				$build = $data[0]['hero_build'];
+				$build['num_favorites'] = $data[0]['num_favorites'] ?? null;
+				$build['num_weekly_favorites'] = $data[0]['num_weekly_favorites'] ?? null;
+				return [ 'ok' => true, 'build' => $build ];
 			}
 		);
 		return ( is_array( $value ) && ( $value['ok'] ?? false ) ) ? $value['build'] : null;
