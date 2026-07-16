@@ -321,7 +321,10 @@ class Hooks {
 		if ( $steps === '' ) {
 			return '';
 		}
-		return '<div class="dlb-cat dlb-ability-order"><div class="dlb-cat-name">Ability Leveling Order</div>'
+		$countLabel = $step . ' point' . ( $step === 1 ? '' : 's' );
+		return '<div class="dlb-cat dlb-ability-order"><div class="dlb-cat-head">'
+			. '<div class="dlb-cat-name">Ability Leveling Order</div>'
+			. '<div class="dlb-cat-count">' . htmlspecialchars( $countLabel ) . '</div></div>'
 			. '<div class="dlb-abil-seq">' . $steps . '</div></div>';
 	}
 
