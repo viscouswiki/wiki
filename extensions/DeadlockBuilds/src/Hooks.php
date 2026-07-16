@@ -207,9 +207,13 @@ class Hooks {
 			// same build can appear twice. Keep one entry per build id, preferring
 			// the canonical (non-/meta/) page.
 			$chosen = [];
+			$hasMeta = [];
 			foreach ( $members as $member ) {
 				$id = $member['id'];
 				$isMeta = strpos( $member['title']->getText(), '/meta/' ) !== false;
+				if ( $isMeta ) {
+					$hasMeta[$id] = true;
+				}
 				if ( !isset( $chosen[$id] ) || ( !$isMeta && $chosen[$id]['meta'] ) ) {
 					$chosen[$id] = [ 'title' => $member['title'], 'id' => $id, 'meta' => $isMeta ];
 				}
@@ -223,10 +227,11 @@ class Hooks {
 					$name = 'Build ' . $member['id'];
 				}
 				$entries[] = [
-					'title' => $member['title'],
-					'id'    => $member['id'],
-					'name'  => $name,
-					'build' => is_array( $build ) ? $build : [],
+					'title'   => $member['title'],
+					'id'      => $member['id'],
+					'name'    => $name,
+					'build'   => is_array( $build ) ? $build : [],
+					'hasMeta' => !empty( $hasMeta[$member['id']] ),
 				];
 			}
 			usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
@@ -271,7 +276,11 @@ class Hooks {
 		$hero   = ( $heroId !== null && isset( $heroes[$heroId] ) ) ? $heroes[$heroId] : null;
 		$url    = $e['title']->getLocalURL();
 
-		$h  = '<a class="dlb-index-card" href="' . htmlspecialchars( $url ) . '">';
+		$cardCls = 'dlb-index-card' . ( !empty( $e['hasMeta'] ) ? ' dlb-index-card-meta' : '' );
+		$h  = '<a class="' . $cardCls . '" href="' . htmlspecialchars( $url ) . '">';
+		if ( !empty( $e['hasMeta'] ) ) {
+			$h .= '<span class="dlb-index-star" title="Current meta build" aria-label="Current meta build">&#9733;</span>';
+		}
 		if ( $hero && !empty( $hero['image'] ) ) {
 			$h .= '<img class="dlb-index-img" src="' . htmlspecialchars( $hero['image'] )
 				. '" alt="" width="46" height="46" loading="lazy">';

@@ -9,6 +9,7 @@
 	max-width: 900px;
 }
 .dlb-index-card {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -18,6 +19,17 @@
 	background: linear-gradient(180deg, #16211a 0%, #121a15 100%);
 	text-decoration: none;
 	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+/* Leave room on the right so a long name never slides under the meta star. */
+.dlb-index-card-meta { padding-right: 26px; }
+.dlb-index-star {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	font-size: 0.95em;
+	line-height: 1;
+	color: #f0c76a;
+	text-shadow: 0 0 7px rgba(240, 199, 106, 0.45);
 }
 .dlb-index-card:hover {
 	transform: translateY(-2px);
