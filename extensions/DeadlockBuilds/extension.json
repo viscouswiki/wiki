@@ -1,6 +1,6 @@
 {
 	"name": "DeadlockBuilds",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"author": [
 		"Viscous Wiki"
 	],
@@ -16,7 +16,8 @@
 	},
 	"Hooks": {
 		"ParserFirstCallInit": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onParserFirstCallInit",
-		"ShowMissingArticle": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onShowMissingArticle"
+		"ShowMissingArticle": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onShowMissingArticle",
+		"CategoryViewer::generateLink": "MediaWiki\\Extension\\DeadlockBuilds\\Hooks::onCategoryViewerGenerateLink"
 	},
 	"AvailableRights": [
 		"deadlock-autocreatebuild"

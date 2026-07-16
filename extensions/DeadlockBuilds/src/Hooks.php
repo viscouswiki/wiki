@@ -24,6 +24,7 @@ class Hooks {
 	public static function onParserFirstCallInit( Parser $parser ) {
 		$parser->setHook( 'deadlockbuild', [ self::class, 'renderTag' ] );
 		$parser->setHook( 'deadlockitem', [ self::class, 'renderItemTagEntry' ] );
+		$parser->setHook( 'deadlockbuildindex', [ self::class, 'renderBuildIndex' ] );
 	}
 
 	/**
@@ -157,6 +158,144 @@ class Hooks {
 		} catch ( \Throwable $e ) {
 			return false;
 		}
+	}
+
+	/**
+	 * In category listings, show a build page (Builds/<id> or Builds/meta/<id>)
+	 * by its human build name rather than the bare numeric page title. Falls
+	 * through to the default link if the build name can't be resolved.
+	 */
+	public static function onCategoryViewerGenerateLink( $type, $title, $html, &$link ) {
+		try {
+			if ( $type !== 'page' || !( $title instanceof \Title )
+				|| $title->getNamespace() !== NS_MAIN
+				|| !preg_match( '#^Builds/(?:meta/)?(\d+)$#', $title->getText(), $m )
+			) {
+				return true;
+			}
+			$build = self::fetchBuild( $m[1] );
+			$name = $build ? trim( (string)( $build['name'] ?? '' ) ) : '';
+			if ( $name === '' ) {
+				return true;
+			}
+			$linkRenderer = MediaWikiServices::getInstance()->getLinkRenderer();
+			$link = $linkRenderer->makeKnownLink( $title, $name );
+		} catch ( \Throwable $e ) {
+			// Leave $link untouched so the default title-based link is used.
+		}
+		return true;
+	}
+
+	/**
+	 * <deadlockbuildindex category="Builds"/> — a browse grid of the build
+	 * pages in a category, shown by build name (with hero + tags) instead of
+	 * the numeric page title. Reads names from the cached build API.
+	 */
+	public static function renderBuildIndex( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		$category = isset( $args['category'] ) ? trim( (string)$args['category'] ) : 'Builds';
+		try {
+			$members = self::categoryBuildIds( $category );
+			if ( !$members ) {
+				return self::notice( 'notice', 'No builds are listed in this category yet.' );
+			}
+			$heroes = self::assetMap( 'heroes' );
+			$tags   = self::assetMap( 'build-tags' );
+
+			// A meta build lives in both Category:Builds and Category:Meta builds
+			// and shares its build id with the canonical Builds/<id> page, so the
+			// same build can appear twice. Keep one entry per build id, preferring
+			// the canonical (non-/meta/) page.
+			$chosen = [];
+			foreach ( $members as $member ) {
+				$id = $member['id'];
+				$isMeta = strpos( $member['title']->getText(), '/meta/' ) !== false;
+				if ( !isset( $chosen[$id] ) || ( !$isMeta && $chosen[$id]['meta'] ) ) {
+					$chosen[$id] = [ 'title' => $member['title'], 'id' => $id, 'meta' => $isMeta ];
+				}
+			}
+
+			$entries = [];
+			foreach ( $chosen as $member ) {
+				$build = self::fetchBuild( $member['id'] );
+				$name = $build ? trim( (string)( $build['name'] ?? '' ) ) : '';
+				if ( $name === '' ) {
+					$name = 'Build ' . $member['id'];
+				}
+				$entries[] = [
+					'title' => $member['title'],
+					'id'    => $member['id'],
+					'name'  => $name,
+					'build' => is_array( $build ) ? $build : [],
+				];
+			}
+			usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
+
+			$cards = '';
+			foreach ( $entries as $e ) {
+				$cards .= self::buildIndexCard( $e, $heroes, $tags );
+			}
+			return '<div class="dlb-index">' . $cards . '</div>';
+		} catch ( \Throwable $ex ) {
+			return self::notice( 'error', 'Could not load the build index right now.' );
+		}
+	}
+
+	/** Titles + build ids of the Builds/<id> pages in a category. */
+	private static function categoryBuildIds( string $category ): array {
+		$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
+		$cat = str_replace( ' ', '_', trim( $category ) );
+		$res = $dbr->newSelectQueryBuilder()
+			->select( [ 'page_namespace', 'page_title' ] )
+			->from( 'categorylinks' )
+			->join( 'page', null, 'cl_from=page_id' )
+			->where( [ 'cl_to' => $cat, 'page_namespace' => NS_MAIN ] )
+			->caller( __METHOD__ )
+			->fetchResultSet();
+		$out = [];
+		foreach ( $res as $row ) {
+			if ( preg_match( '#^Builds/(?:meta/)?(\d+)$#', $row->page_title, $m ) ) {
+				$out[] = [
+					'title' => \Title::makeTitle( (int)$row->page_namespace, $row->page_title ),
+					'id'    => $m[1],
+				];
+			}
+		}
+		return $out;
+	}
+
+	/** One build tile in the browse index. */
+	private static function buildIndexCard( array $e, array $heroes, array $tags ): string {
+		$build  = $e['build'];
+		$heroId = $build['hero_id'] ?? null;
+		$hero   = ( $heroId !== null && isset( $heroes[$heroId] ) ) ? $heroes[$heroId] : null;
+		$url    = $e['title']->getLocalURL();
+
+		$h  = '<a class="dlb-index-card" href="' . htmlspecialchars( $url ) . '">';
+		if ( $hero && !empty( $hero['image'] ) ) {
+			$h .= '<img class="dlb-index-img" src="' . htmlspecialchars( $hero['image'] )
+				. '" alt="" width="46" height="46" loading="lazy">';
+		} else {
+			$h .= '<span class="dlb-index-img dlb-index-img-blank"></span>';
+		}
+		$h .= '<span class="dlb-index-body">';
+		$h .= '<span class="dlb-index-name">' . htmlspecialchars( $e['name'] ) . '</span>';
+		$meta = $hero ? htmlspecialchars( $hero['name'] ) . ' · ' : '';
+		$meta .= '#' . htmlspecialchars( $e['id'] );
+		$h .= '<span class="dlb-index-meta">' . $meta . '</span>';
+
+		$btags = is_array( $build['tags'] ?? null ) ? $build['tags'] : [];
+		$tagHtml = '';
+		foreach ( array_slice( $btags, 0, 3 ) as $tid ) {
+			if ( isset( $tags[$tid]['name'] ) ) {
+				$tagHtml .= '<span class="dlb-index-tag">' . htmlspecialchars( $tags[$tid]['name'] ) . '</span>';
+			}
+		}
+		if ( $tagHtml !== '' ) {
+			$h .= '<span class="dlb-index-tags">' . $tagHtml . '</span>';
+		}
+		$h .= '</span></a>';
+		return $h;
 	}
 
 	/**

@@ -1,4 +1,75 @@
 /* DeadlockBuilds — <deadlockbuild> tag styling (Viscous green theme). */
+
+/* Build browse index (<deadlockbuildindex>) ---------------------------- */
+.dlb-index {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+	gap: 12px;
+	margin: 0.6em 0 1em;
+	max-width: 900px;
+}
+.dlb-index-card {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 11px 13px;
+	border: 1px solid #26342b;
+	border-radius: 11px;
+	background: linear-gradient(180deg, #16211a 0%, #121a15 100%);
+	text-decoration: none;
+	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.dlb-index-card:hover {
+	transform: translateY(-2px);
+	border-color: rgba(57, 255, 136, 0.5);
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+	text-decoration: none;
+}
+.dlb-index-img {
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+	background: #0d130f;
+	border: 2px solid rgba(57, 255, 136, 0.5);
+	object-fit: cover;
+	flex: 0 0 auto;
+}
+.dlb-index-img-blank { border-style: dashed; border-color: #33473b; }
+.dlb-index-body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+.dlb-index-name {
+	font-weight: 700;
+	color: #39ff88;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.dlb-index-meta {
+	font-size: 0.8em;
+	color: #8fae9c;
+}
+.dlb-index-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+.dlb-index-tag {
+	font-size: 0.7em;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: #bfe9d0;
+	background: #1d2a22;
+	border: 1px solid #33473b;
+	border-radius: 999px;
+	padding: 1px 8px;
+}
+
 .deadlock-build {
 	border: 1px solid #26342b;
 	border-radius: 14px;
