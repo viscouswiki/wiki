@@ -10,6 +10,8 @@
 }
 .dlb-index-card {
 	position: relative;
+	isolation: isolate;
+	overflow: hidden;
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -19,6 +21,32 @@
 	background: linear-gradient(180deg, #16211a 0%, #121a15 100%);
 	text-decoration: none;
 	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+/* Sparse "goo" bubbles, matching the home-page cards (see MediaWiki:Common.css):
+   behind the content, clipped to the rounded corners, scattered per card. */
+.dlb-index-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	background-repeat: no-repeat;
+	background-image:
+		radial-gradient(circle, rgba(175, 255, 208, 0.30), rgba(90, 220, 150, 0.10) 55%, transparent 70%),
+		radial-gradient(circle, rgba(175, 255, 208, 0.24), rgba(90, 220, 150, 0.08) 55%, transparent 70%),
+		radial-gradient(circle, rgba(175, 255, 208, 0.26), rgba(90, 220, 150, 0.09) 55%, transparent 70%),
+		radial-gradient(circle, rgba(175, 255, 208, 0.20), rgba(90, 220, 150, 0.07) 55%, transparent 70%),
+		radial-gradient(circle, rgba(175, 255, 208, 0.28), rgba(90, 220, 150, 0.10) 55%, transparent 70%);
+	background-position: 12% 30%, 68% 22%, 44% 76%, 90% 60%, 78% 84%;
+	background-size: 15px 15px, 9px 9px, 20px 20px, 12px 12px, 8px 8px;
+}
+.dlb-index-card:nth-child(2n)::before {
+	background-position: 84% 34%, 22% 66%, 58% 20%, 14% 24%, 66% 80%;
+	background-size: 12px 12px, 19px 19px, 9px 9px, 14px 14px, 10px 10px;
+}
+.dlb-index-card:nth-child(3n)::before {
+	background-position: 30% 24%, 88% 76%, 62% 54%, 20% 82%, 48% 30%;
+	background-size: 17px 17px, 10px 10px, 8px 8px, 13px 13px, 20px 20px;
 }
 /* Leave room on the right so a long name never slides under the meta star. */
 .dlb-index-card-meta { padding-right: 26px; }
