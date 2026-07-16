@@ -29,7 +29,32 @@
 	font-size: 0.95em;
 	line-height: 1;
 	color: #f0c76a;
-	text-shadow: 0 0 7px rgba(240, 199, 106, 0.45);
+	transform-origin: center;
+	animation: dlb-star-pulse 2.4s ease-in-out infinite;
+}
+@keyframes dlb-star-pulse {
+	0%, 100% {
+		text-shadow: 0 0 4px rgba(240, 199, 106, 0.35);
+		transform: scale(1);
+		opacity: 0.85;
+	}
+	50% {
+		text-shadow: 0 0 10px rgba(240, 199, 106, 0.9), 0 0 18px rgba(240, 199, 106, 0.5);
+		transform: scale(1.16);
+		opacity: 1;
+	}
+}
+/* A gentle glow lift on the whole card's star when hovered. */
+.dlb-index-card:hover .dlb-index-star {
+	color: #ffd97a;
+	text-shadow: 0 0 12px rgba(240, 199, 106, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+	.dlb-index-star {
+		animation: none;
+		text-shadow: 0 0 7px rgba(240, 199, 106, 0.5);
+		opacity: 1;
+	}
 }
 .dlb-index-card:hover {
 	transform: translateY(-2px);
