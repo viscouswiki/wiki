@@ -7,6 +7,10 @@
 * The slow sets up [[Puddle Punch]] and makes follow-up gunfire much easier to land.
 * At tier&nbsp;3 the ball '''bounces''', so a single cast can cover a lane or catch enemies around a corner.
 
+== Recommended items ==
+Spirit power, cooldown, and radius extend Splatter's damage and zoning:
+<deadlockitemrow items="Mystic Burst, Mystic Expansion, Improved Spirit, Escalating Exposure, Torment Pulse, Superior Cooldown" />
+
 See the full kit on the [[Abilities]] page.
 
 [[Category:Abilities]]

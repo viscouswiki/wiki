@@ -7,6 +7,10 @@
 * '''On an enemy:''' takes a key target out of a fight for its duration, buying your team a numbers advantage (they heal too, so time it well).
 * Higher tiers add move speed, more health regen, longer duration, and eventually strip debuffs and cut the cooldown.
 
+== Recommended items ==
+Cooldown and duration let you cube more often and for longer; recast tools double the value:
+<deadlockitemrow items="Superior Cooldown, Duration Extender, Improved Spirit, Rescue Beam, Echo Shard, Extra Charge" />
+
 See the full kit on the [[Abilities]] page.
 
 [[Category:Abilities]]

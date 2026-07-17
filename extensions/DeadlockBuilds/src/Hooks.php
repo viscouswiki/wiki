@@ -26,6 +26,7 @@ class Hooks {
 		$parser->setHook( 'deadlockitem', [ self::class, 'renderItemTagEntry' ] );
 		$parser->setHook( 'deadlockbuildindex', [ self::class, 'renderBuildIndex' ] );
 		$parser->setHook( 'deadlockitemindex', [ self::class, 'renderItemIndex' ] );
+		$parser->setHook( 'deadlockitemrow', [ self::class, 'renderItemRow' ] );
 		$parser->setHook( 'deadlockability', [ self::class, 'renderAbilityTagEntry' ] );
 		$parser->setHook( 'deadlockabilityindex', [ self::class, 'renderAbilityIndex' ] );
 		$parser->setHook( 'deadlockrecent', [ self::class, 'renderRecent' ] );
@@ -712,6 +713,42 @@ class Hooks {
 		}
 	}
 
+	/**
+	 * <deadlockitemrow items="Mystic Burst, Superior Cooldown, ..."/> — a compact
+	 * row of item tiles (each linking to its Item page), resolved by name. Names
+	 * that don't match a shop item are silently skipped. Used to show an
+	 * ability's recommended/synergy items.
+	 */
+	public static function renderItemRow( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		try {
+			$raw = isset( $args['items'] ) ? (string)$args['items'] : (string)$input;
+			$names = array_filter( array_map( 'trim', explode( ',', $raw ) ), 'strlen' );
+			if ( !$names ) {
+				return '';
+			}
+			$items = self::assetMap( 'items' );
+			$idx = self::nameIndex();
+			$tiles = '';
+			foreach ( $names as $n ) {
+				$id = $idx[strtolower( $n )] ?? null;
+				$it = $id !== null ? ( $items[$id] ?? null ) : null;
+				if ( $it ) {
+					// itemTile (not the compact gallery tile) gives the same rich
+					// hover card as the build page.
+					$tiles .= self::itemTile( $it );
+				}
+			}
+			if ( $tiles === '' ) {
+				return '';
+			}
+			return '<div class="deadlock-build dlb-itemrow">' . self::soulDefs()
+				. '<div class="dlb-grid">' . $tiles . '</div></div>';
+		} catch ( \Throwable $e ) {
+			return self::notice( 'error', 'Could not load those items right now.' );
+		}
+	}
+
 	// ---- Rendering -------------------------------------------------------
 
 	private static function renderBuild( string $id, array $build ): string {
@@ -840,6 +877,8 @@ class Hooks {
 		if ( !is_array( $changes ) || !count( $changes ) ) {
 			return '';
 		}
+		// Ability ids that have their own wiki page, so we can link the icons.
+		$abilPages = self::abilityMap();
 		$steps = '';
 		$step = 0;
 		foreach ( $changes as $c ) {
@@ -852,12 +891,17 @@ class Hooks {
 			$slug = preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string)( $ab['name'] ?? '' ) ) );
 			$slug = trim( (string)$slug, '-' );
 			$abilClass = 'dlb-abil' . ( $slug !== '' ? ' dlb-abil-' . $slug : '' );
-			$steps .= '<div class="' . htmlspecialchars( $abilClass ) . '" title="' . self::attr( 'Point ' . $step . ': ' . $ab['name'] ) . '">';
+			// Link to the ability's page when one exists.
+			$url = isset( $abilPages[(string)$aid] ) ? self::abilityPageUrl( (string)$ab['name'] ) : null;
+			$tag = $url !== null ? 'a' : 'div';
+			$href = $url !== null ? ' href="' . htmlspecialchars( $url ) . '"' : '';
+			$steps .= '<' . $tag . ' class="' . htmlspecialchars( $abilClass ) . '"' . $href
+				. ' title="' . self::attr( 'Point ' . $step . ': ' . $ab['name'] ) . '">';
 			if ( !empty( $ab['image'] ) ) {
 				$steps .= '<img class="dlb-abil-icon" src="' . htmlspecialchars( $ab['image'] )
 					. '" alt="' . htmlspecialchars( $ab['name'] ) . '" width="34" height="34" loading="lazy">';
 			}
-			$steps .= '<span class="dlb-abil-step">' . $step . '</span></div>';
+			$steps .= '<span class="dlb-abil-step">' . $step . '</span></' . $tag . '>';
 		}
 		if ( $steps === '' ) {
 			return '';
@@ -1464,7 +1508,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-abilities', 'v2' ),
+			$cache->makeKey( 'deadlockbuilds-abilities', 'v3' ),
 			$ttl,
 			static function ( $old, &$setTtl ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -1493,7 +1537,7 @@ class Hooks {
 						'name'  => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
 						'type'  => (string)( $row['ability_type'] ?? 'signature' ),
 						'image' => (string)( $row['image_webp'] ?? $row['image'] ?? '' ),
-						'desc'  => self::cleanAbilityHtml( (string)( $desc['desc'] ?? '' ) ),
+						'desc'  => self::linkifyItems( self::cleanAbilityHtml( (string)( $desc['desc'] ?? '' ) ) ),
 						'quip'  => trim( (string)( $desc['quip'] ?? '' ) ),
 						'stats' => self::abilityStats( $row ),
 						'tiers' => self::abilityTiers( $row ),
@@ -1589,7 +1633,7 @@ class Hooks {
 			if ( $text === '' && isset( $upg[$i - 1]['property_upgrades'] ) ) {
 				$text = self::synthTier( $upg[$i - 1]['property_upgrades'], $props );
 			}
-			$tiers[] = $text;
+			$tiers[] = self::linkifyItems( $text );
 		}
 		return $tiers;
 	}
@@ -1684,5 +1728,82 @@ class Hooks {
 		$s = strip_tags( $s, '<span>' );
 		$s = preg_replace( '/\s+/u', ' ', $s );
 		return trim( $s );
+	}
+
+	/**
+	 * Link any shop-item names that appear in an ability's prose to their Item
+	 * pages. Restricted to distinctive multi-word names (e.g. "Mystic Burst") to
+	 * avoid turning common words like "Damage" or "Slow" into links, matched as
+	 * whole phrases outside any existing tag, at most one link per text segment.
+	 */
+	private static function linkifyItems( string $html ): string {
+		if ( $html === '' ) {
+			return $html;
+		}
+		$phrases = self::itemLinkPhrases();
+		if ( !$phrases ) {
+			return $html;
+		}
+		// Split on tags so we only rewrite visible text, never tag internals.
+		$parts = preg_split( '/(<[^>]+>)/', $html, -1, PREG_SPLIT_DELIM_CAPTURE );
+		foreach ( $parts as $i => $seg ) {
+			if ( $seg === '' || $seg[0] === '<' ) {
+				continue;
+			}
+			foreach ( $phrases as $name => $url ) {
+				$new = preg_replace(
+					'/\b' . preg_quote( $name, '/' ) . '\b/u',
+					'<a href="' . htmlspecialchars( $url ) . '">$0</a>',
+					$seg,
+					1,
+					$count
+				);
+				if ( $count > 0 ) {
+					// One link per segment keeps things tidy and avoids nesting.
+					$parts[$i] = $new;
+					break;
+				}
+			}
+		}
+		return implode( '', $parts );
+	}
+
+	/** Cached "Multi Word Item Name" => Item-page URL map for linkifyItems(). */
+	private static function itemLinkPhrases(): array {
+		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
+		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
+		$value = $cache->getWithSetCallback(
+			$cache->makeKey( 'deadlockbuilds-itemphrases', 'v1' ),
+			$ttl,
+			static function ( $old, &$setTtl ) {
+				$items = self::assetMap( 'items' );
+				$idx = self::nameIndex();
+				if ( !$idx ) {
+					$setTtl = 60;
+					return [];
+				}
+				$out = [];
+				foreach ( $idx as $lname => $id ) {
+					// Only distinctive multi-word names are safe to auto-link.
+					if ( strpos( $lname, ' ' ) === false ) {
+						continue;
+					}
+					$it = $items[$id] ?? null;
+					if ( !$it ) {
+						continue;
+					}
+					$url = self::itemPageUrl( (string)$it['name'] );
+					if ( $url !== null ) {
+						$out[(string)$it['name']] = $url;
+					}
+				}
+				// Longest names first so "Superior Cooldown" wins over "Cooldown".
+				uksort( $out, static function ( $a, $b ) {
+					return mb_strlen( $b ) <=> mb_strlen( $a );
+				} );
+				return $out;
+			}
+		);
+		return is_array( $value ) ? $value : [];
 	}
 }

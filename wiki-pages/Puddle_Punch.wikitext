@@ -7,6 +7,10 @@
 * Pairs naturally with '''[[Splatter]]''' — slowed targets are far easier to catch in the punch.
 * Tier upgrades add a second charge and damage, then radius and lifesteal, and finally a big cooldown cut with heavy-melee damage.
 
+== Recommended items ==
+Extra charges, stronger slows, and radius make the punch land more often and hit harder:
+<deadlockitemrow items="Extra Charge, Mystic Slow, Slowing Hex, Improved Spirit, Greater Expansion, Rapid Recharge" />
+
 See the full kit on the [[Abilities]] page.
 
 [[Category:Abilities]]

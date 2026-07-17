@@ -7,6 +7,10 @@
 * The resistances make you very hard to kill mid-roll, so dive with confidence and body-block for your team.
 * Tier upgrades add damage and resistances, then extra duration and a longer stun.
 
+== Recommended items ==
+Cooldown, duration, and CC-immunity make the ult come up more often and land cleanly:
+<deadlockitemrow items="Superior Cooldown, Superior Duration, Echo Shard, Refresher, Unstoppable, Improved Spirit" />
+
 See the full kit on the [[Abilities]] page.
 
 [[Category:Abilities]]
