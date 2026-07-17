@@ -25,7 +25,7 @@
   /* Faded Viscous hero art on the right, under the glow + bubbles + text. */
   background:
     linear-gradient(90deg, #0d130f 26%, rgba(13, 19, 15, 0.72) 62%, rgba(13, 19, 15, 0.35) 100%),
-    url('https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/viscous_card.png')
+    url('https://media.viscous.wiki/deadlock/assets-api-res/images/heroes/viscous_card.png')
       no-repeat right -16px center / auto 132%,
     radial-gradient(130% 150% at 50% -25%, rgba(57, 255, 136, 0.20), transparent 55%),
     linear-gradient(180deg, #16211a, #0d130f);

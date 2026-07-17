@@ -65,7 +65,7 @@ $wgLogos = [
 // Browser-tab favicon: Viscous's small hero portrait (viscous_sm) — the same
 // icon shown on build cards, hotlinked from the Deadlock assets bucket like the
 // rest of the build/hero imagery.
-$wgFavicon = 'https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/viscous_sm.png';
+$wgFavicon = 'https://media.viscous.wiki/deadlock/assets-api-res/images/heroes/viscous_sm.png';
 
 // Hide the "Powered by MediaWiki" footer badge.
 unset( $wgFooterIcons['poweredby'] );

@@ -20,6 +20,11 @@ class Hooks {
 
 	private const DEFAULT_API = 'https://api.deadlock-api.com';
 
+	/** Origin host for deadlock-api's binary assets (icons, art, videos). We
+	 * mirror these into our own bucket (see mirrorUrl) so pages never hotlink. */
+	private const ASSET_ORIGIN = 'https://assets-bucket.deadlock-api.com/';
+	private const MIRROR_BASE = 'https://media.viscous.wiki/deadlock/';
+
 	/** Register the parser tags. */
 	public static function onParserFirstCallInit( Parser $parser ) {
 		$parser->setHook( 'deadlockbuild', [ self::class, 'renderTag' ] );
@@ -1192,7 +1197,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v6' ),
+			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v7' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $kind ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -1217,7 +1222,7 @@ class Hooks {
 							'slot'   => (string)( $row['item_slot_type'] ?? '' ),
 							'tier'   => $row['item_tier'] ?? null,
 							'active' => !empty( $row['is_active_item'] ),
-							'image'  => (string)$img,
+							'image'  => self::mirrorUrl( (string)$img ),
 							'stats'  => self::itemStats( $row ),
 							'desc'   => self::itemDesc( $row ),
 							'type'   => (string)( $row['type'] ?? '' ),
@@ -1226,7 +1231,7 @@ class Hooks {
 						$imgs = is_array( $row['images'] ?? null ) ? $row['images'] : [];
 						$map[$row['id']] = [
 							'name'  => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
-							'image' => (string)( $imgs['icon_image_small_webp'] ?? $imgs['icon_image_small'] ?? '' ),
+							'image' => self::mirrorUrl( (string)( $imgs['icon_image_small_webp'] ?? $imgs['icon_image_small'] ?? '' ) ),
 						];
 					} else {
 						// build-tags use "label" (e.g. "For New Players"), not "name".
@@ -1354,6 +1359,22 @@ class Hooks {
 		} catch ( \Throwable $e ) {
 			return $default;
 		}
+	}
+
+	/**
+	 * Rewrite a deadlock-api asset URL to our mirrored copy so pages never
+	 * hotlink deadlock-api. Non-asset URLs (or already-local ones) pass through.
+	 */
+	private static function mirrorUrl( string $url ): string {
+		if ( $url === '' ) {
+			return $url;
+		}
+		$origin = self::ASSET_ORIGIN;
+		if ( strncmp( $url, $origin, strlen( $origin ) ) === 0 ) {
+			$base = rtrim( (string)self::config( 'DeadlockBuildsMirrorBase', self::MIRROR_BASE ), '/' ) . '/';
+			return $base . substr( $url, strlen( $origin ) );
+		}
+		return $url;
 	}
 
 	// ---- Abilities -------------------------------------------------------
@@ -1508,7 +1529,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-abilities', 'v3' ),
+			$cache->makeKey( 'deadlockbuilds-abilities', 'v4' ),
 			$ttl,
 			static function ( $old, &$setTtl ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -1536,12 +1557,12 @@ class Hooks {
 						'class' => (string)( $row['class_name'] ?? '' ),
 						'name'  => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
 						'type'  => (string)( $row['ability_type'] ?? 'signature' ),
-						'image' => (string)( $row['image_webp'] ?? $row['image'] ?? '' ),
+						'image' => self::mirrorUrl( (string)( $row['image_webp'] ?? $row['image'] ?? '' ) ),
 						'desc'  => self::linkifyItems( self::cleanAbilityHtml( (string)( $desc['desc'] ?? '' ) ) ),
 						'quip'  => trim( (string)( $desc['quip'] ?? '' ) ),
 						'stats' => self::abilityStats( $row ),
 						'tiers' => self::abilityTiers( $row ),
-						'video' => (string)( $vids['mp4'] ?? '' ),
+						'video' => self::mirrorUrl( (string)( $vids['mp4'] ?? '' ) ),
 					];
 				}
 				if ( !$map ) {
