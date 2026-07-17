@@ -6,12 +6,12 @@
 </div>
 
 <div class="vw-cards">
-[[Viscous|<span class="vw-card-ico">🟢</span><span class="vw-card-title">Viscous</span><span class="vw-card-desc">About the hero</span>]]
-[[Abilities|<span class="vw-card-ico">✨</span><span class="vw-card-title">Abilities</span><span class="vw-card-desc">His full kit, explained</span>]]
-[[:Category:Builds|<span class="vw-card-ico">🛠️</span><span class="vw-card-title">Builds</span><span class="vw-card-desc">Items & recommended builds</span>]]
-[[Guides|<span class="vw-card-ico">📘</span><span class="vw-card-title">Guides</span><span class="vw-card-desc">How to play Viscous</span>]]
-[[:Category:Videos|<span class="vw-card-ico">🎬</span><span class="vw-card-title">Videos</span><span class="vw-card-desc">Clips & media</span>]]
-[[Getting Started|<span class="vw-card-ico">🚀</span><span class="vw-card-title">Getting Started</span><span class="vw-card-desc">New here? Start here</span>]]
+[[Viscous|<span class="vw-card-title">Viscous</span><span class="vw-card-desc">About the hero</span>]]
+[[Abilities|<span class="vw-card-title">Abilities</span><span class="vw-card-desc">His full kit, explained</span>]]
+[[:Category:Builds|<span class="vw-card-title">Builds</span><span class="vw-card-desc">Items & recommended builds</span>]]
+[[Guides|<span class="vw-card-title">Guides</span><span class="vw-card-desc">How to play Viscous</span>]]
+[[:Category:Videos|<span class="vw-card-title">Videos</span><span class="vw-card-desc">Clips & media</span>]]
+[[Getting Started|<span class="vw-card-title">Getting Started</span><span class="vw-card-desc">New here? Start here</span>]]
 </div>
 
 == Current meta builds ==
