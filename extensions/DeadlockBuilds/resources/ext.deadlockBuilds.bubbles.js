@@ -45,6 +45,53 @@
 		return ( 3 + t * t * 17 ) * rand( 0.85, 1.15 );
 	}
 
+	// Roughly half the field is the crisp "shiny" bubble, half the soft glow.
+	function pickType() {
+		return Math.random() < 0.5 ? 'shiny' : 'soft';
+	}
+
+	// Soft glowing blob — the original ambient look.
+	function drawSoft( ctx, x, y, r, alpha ) {
+		var g = ctx.createRadialGradient( x, y, 0, x, y, r );
+		g.addColorStop( 0, 'rgba(180,255,212,' + alpha + ')' );
+		g.addColorStop( 0.55, 'rgba(90,220,150,' + ( alpha * 0.34 ) + ')' );
+		g.addColorStop( 1, 'rgba(90,220,150,0)' );
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.arc( x, y, r, 0, Math.PI * 2 );
+		ctx.fill();
+	}
+
+	// A more "real" bubble: near-hollow body with a bright rim and a small
+	// specular highlight toward the upper-left, like light catching a bubble.
+	function drawShiny( ctx, x, y, r, alpha ) {
+		// Body: faint inside, brightening to a glassy rim.
+		var body = ctx.createRadialGradient( x, y, r * 0.2, x, y, r );
+		body.addColorStop( 0, 'rgba(150,240,196,' + ( alpha * 0.10 ) + ')' );
+		body.addColorStop( 0.74, 'rgba(120,235,182,' + ( alpha * 0.16 ) + ')' );
+		body.addColorStop( 0.9, 'rgba(205,255,228,' + ( alpha * 0.85 ) + ')' );
+		body.addColorStop( 1, 'rgba(120,235,182,0)' );
+		ctx.fillStyle = body;
+		ctx.beginPath();
+		ctx.arc( x, y, r, 0, Math.PI * 2 );
+		ctx.fill();
+
+		// Crisp thin rim for a rounder, glassier edge.
+		ctx.lineWidth = Math.max( 0.6, r * 0.07 );
+		ctx.strokeStyle = 'rgba(215,255,232,' + Math.min( 0.7, alpha * 1.6 ) + ')';
+		ctx.stroke();
+
+		// Specular highlight dot near the top-left.
+		var hx = x - r * 0.33, hy = y - r * 0.33, hr = r * 0.4;
+		var hi = ctx.createRadialGradient( hx, hy, 0, hx, hy, hr );
+		hi.addColorStop( 0, 'rgba(255,255,255,' + Math.min( 0.92, alpha * 2.6 ) + ')' );
+		hi.addColorStop( 1, 'rgba(255,255,255,0)' );
+		ctx.fillStyle = hi;
+		ctx.beginPath();
+		ctx.arc( hx, hy, hr, 0, Math.PI * 2 );
+		ctx.fill();
+	}
+
 	function makeBubble( y ) {
 		var r = rand( R_MIN, R_MAX );
 		return {
@@ -55,7 +102,8 @@
 			drift: rand( 3, 6 ) + r * 0.5, // bigger bubbles wobble a touch more
 			phase: rand( 0, Math.PI * 2 ),
 			omega: rand( 0.3, 0.9 ),     // sway speed
-			alpha: rand( 0.12, 0.32 )
+			alpha: rand( 0.12, 0.32 ),
+			type: pickType()
 		};
 	}
 
@@ -162,6 +210,7 @@
 				b.speed = speedFor( b.r );
 				b.drift = rand( 3, 6 ) + b.r * 0.5;
 				b.alpha = rand( 0.12, 0.32 );
+				b.type = pickType();
 			}
 		}
 
@@ -187,14 +236,11 @@
 				if ( ly < -b.r || ly > r.height + b.r || lx < -b.r || lx > r.width + b.r ) {
 					continue;
 				}
-				var g = ctx.createRadialGradient( lx, ly, 0, lx, ly, b.r );
-				g.addColorStop( 0, 'rgba(180,255,212,' + b.alpha + ')' );
-				g.addColorStop( 0.55, 'rgba(90,220,150,' + ( b.alpha * 0.34 ) + ')' );
-				g.addColorStop( 1, 'rgba(90,220,150,0)' );
-				ctx.fillStyle = g;
-				ctx.beginPath();
-				ctx.arc( lx, ly, b.r, 0, Math.PI * 2 );
-				ctx.fill();
+				if ( b.type === 'shiny' ) {
+					drawShiny( ctx, lx, ly, b.r, b.alpha );
+				} else {
+					drawSoft( ctx, lx, ly, b.r, b.alpha );
+				}
 			}
 		}
 
