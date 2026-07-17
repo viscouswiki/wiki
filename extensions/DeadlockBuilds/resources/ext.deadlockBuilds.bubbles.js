@@ -22,6 +22,7 @@
 	var docH = 0;
 	var lastT = 0;
 	var resizeTimer = null;
+	var ro = null;
 
 	function rand( a, b ) {
 		return a + Math.random() * ( b - a );
@@ -73,6 +74,7 @@
 	 */
 	function reflow() {
 		collectCards();
+		observeCards();
 		sizeCanvases();
 		updateDocH();
 		var target = targetCount();
@@ -82,6 +84,15 @@
 		if ( bubbles.length > target ) {
 			bubbles.length = target;
 		}
+	}
+
+	function observeCards() {
+		if ( !ro ) {
+			return;
+		}
+		cards.forEach( function ( c ) {
+			ro.observe( c.el ); // observing twice is a no-op
+		} );
 	}
 
 	function collectCards() {
@@ -190,20 +201,32 @@
 		lastT = 0;
 		window.requestAnimationFrame( frame );
 
-		// Re-fit on real layout changes only. On mobile, scrolling shows/hides
-		// the URL bar, which fires resize with a changed *height* but the same
-		// width — ignore those so the field never resets mid-scroll. reflow()
-		// also preserves existing bubbles, so even a genuine resize doesn't jar.
-		var lastW = window.innerWidth;
-		window.addEventListener( 'resize', function () {
-			if ( window.innerWidth === lastW ) {
-				return;
-			}
-			lastW = window.innerWidth;
+		function scheduleReflow() {
 			clearTimeout( resizeTimer );
 			resizeTimer = setTimeout( reflow, 200 );
-		} );
-		// Cards/images can change the page height after load; top up (not reset).
+		}
+
+		// Re-fit only when a card's actual box size changes (responsive reflow,
+		// rotation, late-loading images). Crucially, a ResizeObserver does NOT
+		// fire on scroll or when the mobile URL bar shows/hides — those change
+		// the viewport height (and, on some iPhones, window.innerWidth) but not
+		// the cards' layout size. Listening to window.resize instead made the
+		// field flicker whenever the URL bar toggled on scroll-direction change.
+		if ( typeof ResizeObserver !== 'undefined' ) {
+			ro = new ResizeObserver( scheduleReflow );
+			observeCards();
+		} else {
+			// Fallback for very old browsers: width-only resize guard.
+			var lastW = window.innerWidth;
+			window.addEventListener( 'resize', function () {
+				if ( window.innerWidth === lastW ) {
+					return;
+				}
+				lastW = window.innerWidth;
+				scheduleReflow();
+			} );
+		}
+		// Late layout shifts (images) also change the page height; top up once.
 		window.addEventListener( 'load', function () {
 			setTimeout( reflow, 300 );
 		} );
