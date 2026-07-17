@@ -1,6 +1,6 @@
 <div class="vw-hero">
 <div class="vw-hero-title">The Viscous Wiki</div>
-<div class="vw-hero-sub">The community guide to Deadlock's goo hero — abilities, item builds, and the current meta, all in one place.</div>
+<div class="vw-hero-sub">Welcome to The Deep</div>
 <div class="vw-cta"><span class="vw-btn-primary">[[Getting Started|Get started]]</span> <span class="vw-btn-ghost">[[:Category:Builds|Browse builds]]</span></div>
 <deadlocksearch placeholder="Search builds, items, abilities…" />
 </div>
