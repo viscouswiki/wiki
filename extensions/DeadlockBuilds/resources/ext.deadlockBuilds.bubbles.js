@@ -44,16 +44,43 @@
 		};
 	}
 
-	function seed() {
+	function updateDocH() {
 		docH = Math.max(
 			document.documentElement.scrollHeight,
 			document.body ? document.body.scrollHeight : 0,
 			window.innerHeight
 		);
-		var target = Math.min( 480, Math.max( 48, Math.round( docH / 17 ) ) );
+	}
+
+	function targetCount() {
+		return Math.min( 480, Math.max( 48, Math.round( docH / 17 ) ) );
+	}
+
+	function seed() {
+		updateDocH();
+		var target = targetCount();
 		bubbles = [];
 		for ( var i = 0; i < target; i++ ) {
 			bubbles.push( makeBubble( rand( 0, docH ) ) );
+		}
+	}
+
+	/**
+	 * Re-fit to a layout change WITHOUT regenerating the field: resize canvases,
+	 * refresh docH, and only add/remove bubbles to reach the new target count.
+	 * Existing bubbles keep their positions, so nothing visibly "resets". This is
+	 * important on mobile, where the URL bar hiding on scroll fires resize events.
+	 */
+	function reflow() {
+		collectCards();
+		sizeCanvases();
+		updateDocH();
+		var target = targetCount();
+		while ( bubbles.length < target ) {
+			bubbles.push( makeBubble( rand( 0, docH ) ) );
+		}
+		if ( bubbles.length > target ) {
+			bubbles.length = target;
 		}
 	}
 
@@ -148,12 +175,6 @@
 		window.requestAnimationFrame( frame );
 	}
 
-	function relayout() {
-		collectCards();
-		sizeCanvases();
-		seed();
-	}
-
 	function start() {
 		collectCards();
 		if ( !cards.length ) {
@@ -168,13 +189,23 @@
 		}
 		lastT = 0;
 		window.requestAnimationFrame( frame );
+
+		// Re-fit on real layout changes only. On mobile, scrolling shows/hides
+		// the URL bar, which fires resize with a changed *height* but the same
+		// width — ignore those so the field never resets mid-scroll. reflow()
+		// also preserves existing bubbles, so even a genuine resize doesn't jar.
+		var lastW = window.innerWidth;
 		window.addEventListener( 'resize', function () {
+			if ( window.innerWidth === lastW ) {
+				return;
+			}
+			lastW = window.innerWidth;
 			clearTimeout( resizeTimer );
-			resizeTimer = setTimeout( relayout, 200 );
+			resizeTimer = setTimeout( reflow, 200 );
 		} );
-		// Cards/images can change the page height after load; re-seed once settled.
+		// Cards/images can change the page height after load; top up (not reset).
 		window.addEventListener( 'load', function () {
-			setTimeout( relayout, 300 );
+			setTimeout( reflow, 300 );
 		} );
 	}
 
