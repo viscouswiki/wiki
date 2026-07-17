@@ -28,19 +28,33 @@
 		return a + Math.random() * ( b - a );
 	}
 
+	var R_MIN = 2.5, R_MAX = 12;
+
 	function vw() {
 		return window.innerWidth || document.documentElement.clientWidth || 1200;
 	}
 
+	/**
+	 * Rise speed as a function of size, like a bubble in water: buoyancy grows
+	 * with volume, so big bubbles surge upward while tiny ones barely drift. The
+	 * squared term keeps the small end genuinely slow; the jitter stops
+	 * same-size bubbles from moving in lockstep.
+	 */
+	function speedFor( r ) {
+		var t = ( r - R_MIN ) / ( R_MAX - R_MIN ); // 0 (tiny) .. 1 (big)
+		return ( 3 + t * t * 17 ) * rand( 0.85, 1.15 );
+	}
+
 	function makeBubble( y ) {
+		var r = rand( R_MIN, R_MAX );
 		return {
-			x: rand( 0, vw() ),        // viewport-x (no horizontal scroll on the wiki)
-			y: y,                      // document-y
-			r: rand( 3, 11 ),
-			speed: rand( 4.5, 15 ),    // px/sec upward
-			drift: rand( 4, 12 ),      // horizontal sway amplitude
+			x: rand( 0, vw() ),          // viewport-x (no horizontal scroll on the wiki)
+			y: y,                        // document-y
+			r: r,
+			speed: speedFor( r ),        // px/sec upward — bigger rises faster
+			drift: rand( 3, 6 ) + r * 0.5, // bigger bubbles wobble a touch more
 			phase: rand( 0, Math.PI * 2 ),
-			omega: rand( 0.3, 0.9 ),   // sway speed
+			omega: rand( 0.3, 0.9 ),     // sway speed
 			alpha: rand( 0.12, 0.32 )
 		};
 	}
@@ -144,8 +158,9 @@
 				// Recycle to the bottom of the document as a fresh bubble.
 				b.y = docH + rand( 0, 60 );
 				b.x = rand( 0, vw() );
-				b.r = rand( 3, 11 );
-				b.speed = rand( 4.5, 15 );
+				b.r = rand( R_MIN, R_MAX );
+				b.speed = speedFor( b.r );
+				b.drift = rand( 3, 6 ) + b.r * 0.5;
 				b.alpha = rand( 0.12, 0.32 );
 			}
 		}
