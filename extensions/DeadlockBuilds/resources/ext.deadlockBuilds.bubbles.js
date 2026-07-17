@@ -70,12 +70,12 @@
 	 */
 	function speedFor( r ) {
 		var t = ( r - R_MIN ) / ( R_MAX - R_MIN ); // 0 (tiny) .. 1 (big)
-		return ( 3 + t * t * 17 ) * rand( 0.85, 1.15 );
+		return ( 3 + t * t * 17 ) * rand( 0.85, 1.15 ) * 0.75; // 25% slower overall
 	}
 
-	// Roughly half the field is the crisp "shiny" bubble, half the soft glow.
+	// About a third of the field is the crisp "shiny" bubble, the rest soft glow.
 	function pickType() {
-		return Math.random() < 0.5 ? 'shiny' : 'soft';
+		return Math.random() < 0.375 ? 'shiny' : 'soft';
 	}
 
 	// Soft glowing blob — the original ambient look, tinted by depth.
@@ -112,11 +112,12 @@
 		ctx.strokeStyle = rgba( b.light, Math.min( 0.7, a * 1.6 ) );
 		ctx.stroke();
 
-		// Specular highlight dot near the top-left.
+		// Specular highlight dot near the top-left. Tinted a green-ish white
+		// (never pure white) and capped at 75% opacity so it doesn't glare.
 		var hx = x - r * 0.33, hy = y - r * 0.33, hr = r * 0.4;
-		var hCol = mix( b.light, [ 255, 255, 255 ], 0.35 + 0.65 * b.depth );
+		var hCol = mix( b.light, [ 214, 255, 230 ], 0.35 + 0.65 * b.depth );
 		var hi = ctx.createRadialGradient( hx, hy, 0, hx, hy, hr );
-		hi.addColorStop( 0, rgba( hCol, Math.min( 0.92, a * 2.6 ) ) );
+		hi.addColorStop( 0, rgba( hCol, Math.min( 0.75, a * 2.6 ) ) );
 		hi.addColorStop( 1, rgba( hCol, 0 ) );
 		ctx.fillStyle = hi;
 		ctx.beginPath();
