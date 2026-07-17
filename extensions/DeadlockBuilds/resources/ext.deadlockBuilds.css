@@ -702,6 +702,229 @@
 	white-space: nowrap;
 }
 
+/* Ability pages --------------------------------------------------------- */
+/* Full ability card (<deadlockability>). */
+.deadlock-build.dlb-ability-card { position: relative; }
+.deadlock-build .dlb-ab-head {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+/* Slot plate lives on the wrapper so the Splatter invert filter only touches
+   the icon art, never the plate behind it (matching the in-game ability bar). */
+.deadlock-build .dlb-ab-icon-plate {
+	flex: none;
+	width: 72px;
+	height: 72px;
+	border-radius: 14px;
+	border: 2px solid #3a4a40;
+	background: linear-gradient(180deg, #6a7a6f, #465650);
+	overflow: hidden;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.deadlock-build .dlb-ab-icon {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+/* Splatter ships as a dark goo silhouette; recolour it to white line-art. */
+.deadlock-build .dlb-abil-splatter .dlb-ab-icon,
+.deadlock-build .dlb-abil-splatter .dlb-ab-tile-icon { filter: brightness(0) invert(1); }
+.deadlock-build .dlb-ab-name {
+	font-size: 1.6em;
+	font-weight: 800;
+	line-height: 1.1;
+	color: #eafff2;
+}
+.deadlock-build .dlb-ab-type {
+	display: inline-block;
+	margin-top: 6px;
+	font-size: 0.72em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	padding: 2px 9px;
+	border-radius: 999px;
+	color: #0d130f;
+	background: #39ff88;
+}
+.deadlock-build .dlb-ab-type-ultimate {
+	color: #ffe9b8;
+	background: linear-gradient(180deg, #7a5a1e, #5c4416);
+	border: 1px solid #caa24a;
+}
+.deadlock-build .dlb-ab-quip {
+	margin-top: 8px;
+	color: #9fbcac;
+	font-style: italic;
+	font-size: 0.95em;
+}
+.deadlock-build .dlb-ab-desc {
+	margin: 16px 0 4px;
+	color: #cfe6d8;
+	font-size: 1.02em;
+	line-height: 1.55;
+}
+.deadlock-build .dlb-ab-desc .highlight { color: #7CFF9E; font-weight: 600; }
+/* Key-stats grid. */
+.deadlock-build .dlb-ab-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+	gap: 8px;
+	margin: 16px 0;
+}
+.deadlock-build .dlb-ab-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 8px;
+	border-radius: 10px;
+	border: 1px solid #26342b;
+	background: linear-gradient(180deg, #16211a, #121a15);
+	text-align: center;
+}
+.deadlock-build .dlb-ab-stat-val {
+	font-size: 1.25em;
+	font-weight: 800;
+	color: #39ff88;
+	line-height: 1.1;
+}
+.deadlock-build .dlb-ab-stat-key {
+	margin-top: 3px;
+	font-size: 0.74em;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #9fbcac;
+}
+/* Upgrade tiers. */
+.deadlock-build .dlb-ab-tiers { margin-top: 18px; }
+.deadlock-build .dlb-ab-tiers-head {
+	font-size: 0.78em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #7f9a8a;
+	margin-bottom: 8px;
+}
+.deadlock-build .dlb-ab-tier {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid #26342b;
+	background: linear-gradient(180deg, #16211a, #121a15);
+}
+.deadlock-build .dlb-ab-tier + .dlb-ab-tier { margin-top: 8px; }
+.deadlock-build .dlb-ab-tier-badge {
+	flex: none;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	font-size: 0.82em;
+	font-weight: 800;
+	color: #0d130f;
+	background: linear-gradient(180deg, #57ffa6, #24d97d);
+}
+.deadlock-build .dlb-ab-tier-desc {
+	flex: 1;
+	color: #cfe6d8;
+	font-size: 0.96em;
+	line-height: 1.4;
+}
+.deadlock-build .dlb-ab-tier-desc .highlight { color: #7CFF9E; font-weight: 600; }
+.deadlock-build .dlb-ab-tier-cost {
+	flex: none;
+	color: #b9d8c6;
+	font-size: 0.9em;
+	font-weight: 700;
+	white-space: nowrap;
+}
+.deadlock-build .dlb-ab-tier-cost-lbl { color: #7f9a8a; font-weight: 500; }
+/* Looping gameplay clip. */
+.deadlock-build .dlb-ab-video {
+	display: block;
+	width: 100%;
+	margin-top: 18px;
+	border-radius: 12px;
+	border: 1px solid #26342b;
+	background: #0d130f;
+}
+
+/* Ability index grid (<deadlockabilityindex>). */
+.deadlock-build.dlb-ability-index { padding: 0; border: 0; background: none; box-shadow: none; }
+.dlb-ability-index .dlb-ab-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	gap: 12px;
+}
+.dlb-ability-index .dlb-ab-tile {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 6px;
+	padding: 18px 14px 16px;
+	border-radius: 14px;
+	border: 1px solid #26342b;
+	background: linear-gradient(180deg, #16211a, #121a15);
+	text-decoration: none;
+	transition: transform 0.13s ease, border-color 0.13s ease, box-shadow 0.13s ease;
+}
+.dlb-ability-index a.dlb-ab-tile:hover {
+	transform: translateY(-3px);
+	border-color: rgba(57, 255, 136, 0.5);
+	box-shadow: 0 12px 26px rgba(0, 0, 0, 0.42);
+	text-decoration: none;
+}
+.dlb-ability-index .dlb-ab-tile-plate {
+	width: 56px;
+	height: 56px;
+	border-radius: 12px;
+	border: 2px solid #3a4a40;
+	background: linear-gradient(180deg, #6a7a6f, #465650);
+	overflow: hidden;
+}
+.dlb-ability-index .dlb-ab-tile-icon {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.dlb-ability-index .dlb-ab-tile-name {
+	font-weight: 700;
+	color: #39ff88;
+	font-size: 1.05em;
+}
+.dlb-ability-index .dlb-ab-tile-type {
+	font-size: 0.68em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 1px 8px;
+	border-radius: 999px;
+	color: #0d130f;
+	background: #39ff88;
+}
+.dlb-ability-index .dlb-ab-tile-type.dlb-ab-type-ultimate {
+	color: #ffe9b8;
+	background: linear-gradient(180deg, #7a5a1e, #5c4416);
+	border: 1px solid #caa24a;
+}
+.dlb-ability-index .dlb-ab-tile-quip {
+	color: #9fbcac;
+	font-size: 0.85em;
+	line-height: 1.35;
+}
+
 /* Responsive ------------------------------------------------------------ */
 @media (max-width: 640px) {
 	.deadlock-build { padding: 14px 14px; }
@@ -711,4 +934,13 @@
 	.deadlock-build .dlb-share { align-self: center; }
 	.deadlock-build .dlb-pop { width: min(230px, 74vw); }
 	.dlb-index { grid-template-columns: 1fr; }
+	.deadlock-build .dlb-ab-head { gap: 12px; }
+	.deadlock-build .dlb-ab-icon { width: 60px; height: 60px; }
+	.deadlock-build .dlb-ab-name { font-size: 1.35em; }
+	.deadlock-build .dlb-ab-stats { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+	.deadlock-build .dlb-ab-tier { flex-wrap: wrap; }
+	.dlb-ability-index .dlb-ab-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 430px) {
+	.dlb-ability-index .dlb-ab-grid { grid-template-columns: 1fr; }
 }

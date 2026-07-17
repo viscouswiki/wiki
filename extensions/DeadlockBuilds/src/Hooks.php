@@ -26,6 +26,8 @@ class Hooks {
 		$parser->setHook( 'deadlockitem', [ self::class, 'renderItemTagEntry' ] );
 		$parser->setHook( 'deadlockbuildindex', [ self::class, 'renderBuildIndex' ] );
 		$parser->setHook( 'deadlockitemindex', [ self::class, 'renderItemIndex' ] );
+		$parser->setHook( 'deadlockability', [ self::class, 'renderAbilityTagEntry' ] );
+		$parser->setHook( 'deadlockabilityindex', [ self::class, 'renderAbilityIndex' ] );
 		$parser->setHook( 'deadlockrecent', [ self::class, 'renderRecent' ] );
 		$parser->setHook( 'deadlocksearch', [ self::class, 'renderSearch' ] );
 	}
@@ -1294,5 +1296,379 @@ class Hooks {
 		} catch ( \Throwable $e ) {
 			return $default;
 		}
+	}
+
+	// ---- Abilities -------------------------------------------------------
+
+	/** Viscous's hero id and the canonical order of his four abilities. */
+	private const VISCOUS_HERO_ID = 35;
+	private const ABILITY_ORDER = [
+		'viscous_goo_grenade',      // Splatter
+		'viscous_restorative_goo',  // The Cube
+		'viscous_telepunch',        // Puddle Punch
+		'viscous_goo_bowling_ball', // Goo Ball
+	];
+
+	/**
+	 * <deadlockability name="Splatter"/> (or class="..." / id="123") — render a
+	 * full ability card. Defaults to the page name, so an ability page can simply
+	 * contain <deadlockability/>.
+	 */
+	public static function renderAbilityTagEntry( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		try {
+			$map = self::abilityMap();
+			if ( !$map ) {
+				return self::notice( 'error', 'Could not load Viscous\'s abilities right now.' );
+			}
+			$a = null;
+			if ( isset( $args['id'] ) && preg_replace( '/[^0-9]/', '', (string)$args['id'] ) !== '' ) {
+				$a = $map[preg_replace( '/[^0-9]/', '', (string)$args['id'] )] ?? null;
+			} elseif ( isset( $args['class'] ) ) {
+				$a = self::abilityByClass( $map, (string)$args['class'] );
+			} else {
+				$name = isset( $args['name'] ) ? (string)$args['name'] : (string)$parser->getTitle()->getText();
+				$a = self::abilityByName( $map, $name );
+			}
+			if ( !$a ) {
+				return self::notice( 'error', 'That Viscous ability was not found.' );
+			}
+			return self::renderAbilityCard( $a );
+		} catch ( \Throwable $e ) {
+			return self::notice( 'error', 'Could not load that ability right now.' );
+		}
+	}
+
+	/** <deadlockabilityindex/> — a grid of Viscous's abilities linking to each page. */
+	public static function renderAbilityIndex( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$parser->getOutput()->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		try {
+			$map = self::abilityMap();
+			if ( !$map ) {
+				return self::notice( 'error', 'Could not load Viscous\'s abilities right now.' );
+			}
+			$tiles = '';
+			foreach ( self::abilitiesInOrder( $map ) as $a ) {
+				$slug = self::abilitySlug( $a['name'] );
+				$typeLabel = $a['type'] === 'ultimate' ? 'Ultimate' : 'Signature';
+				$url = self::abilityPageUrl( $a['name'] );
+				$open = $url !== null ? '<a class="dlb-ab-tile dlb-abil-' . $slug . '" href="' . htmlspecialchars( $url ) . '">'
+					: '<div class="dlb-ab-tile dlb-abil-' . $slug . '">';
+				$close = $url !== null ? '</a>' : '</div>';
+				$tiles .= $open;
+				if ( !empty( $a['image'] ) ) {
+					$tiles .= '<span class="dlb-ab-tile-plate"><img class="dlb-ab-tile-icon" src="' . htmlspecialchars( $a['image'] )
+						. '" alt="' . htmlspecialchars( $a['name'] ) . '" width="56" height="56" loading="lazy"></span>';
+				}
+				$tiles .= '<span class="dlb-ab-tile-name">' . htmlspecialchars( $a['name'] ) . '</span>';
+				$tiles .= '<span class="dlb-ab-tile-type dlb-ab-type-' . htmlspecialchars( $a['type'] ) . '">'
+					. $typeLabel . '</span>';
+				if ( !empty( $a['quip'] ) ) {
+					$tiles .= '<span class="dlb-ab-tile-quip">' . htmlspecialchars( $a['quip'] ) . '</span>';
+				}
+				$tiles .= $close;
+			}
+			if ( $tiles === '' ) {
+				return self::notice( 'info', 'No abilities to show.' );
+			}
+			return '<div class="deadlock-build dlb-ability-index"><div class="dlb-ab-grid">' . $tiles . '</div></div>';
+		} catch ( \Throwable $e ) {
+			return self::notice( 'error', 'Could not load abilities right now.' );
+		}
+	}
+
+	/** Render one ability as a full card: icon, type, description, key stats,
+	 * upgrade tiers, and a looping gameplay clip. */
+	private static function renderAbilityCard( array $a ): string {
+		$slug = self::abilitySlug( $a['name'] );
+		$typeLabel = $a['type'] === 'ultimate' ? 'Ultimate' : 'Signature';
+
+		$h  = '<div class="deadlock-build dlb-ability-card dlb-abil-' . $slug . '">';
+		$h .= '<div class="dlb-ab-head">';
+		if ( !empty( $a['image'] ) ) {
+			// Plate on the wrapper, not the img, so the Splatter invert filter
+			// only recolours the icon art — never the plate behind it.
+			$h .= '<span class="dlb-ab-icon-plate"><img class="dlb-ab-icon" src="' . htmlspecialchars( $a['image'] )
+				. '" alt="' . htmlspecialchars( $a['name'] ) . '" width="72" height="72" loading="lazy"></span>';
+		}
+		$h .= '<div class="dlb-ab-headtext">';
+		$h .= '<div class="dlb-ab-name">' . htmlspecialchars( $a['name'] ) . '</div>';
+		$h .= '<div class="dlb-ab-type dlb-ab-type-' . htmlspecialchars( $a['type'] ) . '">'
+			. $typeLabel . ' Ability</div>';
+		if ( !empty( $a['quip'] ) ) {
+			$h .= '<div class="dlb-ab-quip">' . htmlspecialchars( $a['quip'] ) . '</div>';
+		}
+		$h .= '</div></div>';
+
+		if ( !empty( $a['desc'] ) ) {
+			// Raw HTML (parser strip state): only <span> survives self::cleanAbilityHtml().
+			$h .= '<div class="dlb-ab-desc">' . $a['desc'] . '</div>';
+		}
+
+		if ( !empty( $a['stats'] ) ) {
+			$h .= '<div class="dlb-ab-stats">';
+			foreach ( $a['stats'] as $s ) {
+				$h .= '<div class="dlb-ab-stat">'
+					. '<span class="dlb-ab-stat-val">' . htmlspecialchars( $s['value'] ) . '</span>'
+					. '<span class="dlb-ab-stat-key">' . htmlspecialchars( $s['label'] ) . '</span></div>';
+			}
+			$h .= '</div>';
+		}
+
+		$tiers = is_array( $a['tiers'] ?? null ) ? $a['tiers'] : [];
+		$costs = [ 1, 2, 5 ];
+		$tierHtml = '';
+		foreach ( $tiers as $i => $text ) {
+			if ( trim( (string)$text ) === '' ) {
+				continue;
+			}
+			$n = $i + 1;
+			$cost = $costs[$i] ?? ( $n );
+			$tierHtml .= '<div class="dlb-ab-tier">'
+				. '<span class="dlb-ab-tier-badge">T' . $n . '</span>'
+				. '<span class="dlb-ab-tier-desc">' . $text . '</span>'
+				. '<span class="dlb-ab-tier-cost" title="Ability points">' . $cost
+				. ' <span class="dlb-ab-tier-cost-lbl">pt' . ( $cost === 1 ? '' : 's' ) . '</span></span>'
+				. '</div>';
+		}
+		if ( $tierHtml !== '' ) {
+			$h .= '<div class="dlb-ab-tiers"><div class="dlb-ab-tiers-head">Upgrades</div>' . $tierHtml . '</div>';
+		}
+
+		if ( !empty( $a['video'] ) ) {
+			$poster = !empty( $a['image'] ) ? ' poster="' . htmlspecialchars( $a['image'] ) . '"' : '';
+			$h .= '<video class="dlb-ab-video" src="' . htmlspecialchars( $a['video'] ) . '"'
+				. $poster . ' autoplay muted loop playsinline preload="metadata"></video>';
+		}
+
+		$h .= '</div>';
+		return $h;
+	}
+
+	/** Cached id => ability record for Viscous's signature/ultimate abilities. */
+	private static function abilityMap(): array {
+		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
+		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
+		$value = $cache->getWithSetCallback(
+			$cache->makeKey( 'deadlockbuilds-abilities', 'v2' ),
+			$ttl,
+			static function ( $old, &$setTtl ) {
+				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
+				$json = self::httpGet( $base . '/v1/assets/items' );
+				$arr = $json !== null ? json_decode( $json, true ) : null;
+				if ( !is_array( $arr ) ) {
+					$setTtl = 60;
+					return [];
+				}
+				$map = [];
+				foreach ( $arr as $row ) {
+					if ( ( $row['type'] ?? '' ) !== 'ability'
+						|| ( $row['hero'] ?? null ) !== self::VISCOUS_HERO_ID
+						|| !in_array( $row['ability_type'] ?? '', [ 'signature', 'ultimate' ], true )
+					) {
+						continue;
+					}
+					if ( !isset( $row['id'] ) ) {
+						continue;
+					}
+					$desc = is_array( $row['description'] ?? null ) ? $row['description'] : [];
+					$vids = is_array( $row['videos'] ?? null ) ? $row['videos'] : [];
+					$map[(string)$row['id']] = [
+						'id'    => (string)$row['id'],
+						'class' => (string)( $row['class_name'] ?? '' ),
+						'name'  => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
+						'type'  => (string)( $row['ability_type'] ?? 'signature' ),
+						'image' => (string)( $row['image_webp'] ?? $row['image'] ?? '' ),
+						'desc'  => self::cleanAbilityHtml( (string)( $desc['desc'] ?? '' ) ),
+						'quip'  => trim( (string)( $desc['quip'] ?? '' ) ),
+						'stats' => self::abilityStats( $row ),
+						'tiers' => self::abilityTiers( $row ),
+						'video' => (string)( $vids['mp4'] ?? '' ),
+					];
+				}
+				if ( !$map ) {
+					$setTtl = 60;
+				}
+				return $map;
+			}
+		);
+		return is_array( $value ) ? $value : [];
+	}
+
+	/** Abilities in canonical in-game order (Splatter, Cube, Punch, Goo Ball). */
+	private static function abilitiesInOrder( array $map ): array {
+		$order = array_flip( self::ABILITY_ORDER );
+		$list = array_values( $map );
+		usort( $list, static function ( $a, $b ) use ( $order ) {
+			$ai = $order[$a['class']] ?? 99;
+			$bi = $order[$b['class']] ?? 99;
+			return $ai <=> $bi ?: strcmp( $a['name'], $b['name'] );
+		} );
+		return $list;
+	}
+
+	private static function abilityByName( array $map, string $name ): ?array {
+		$name = strtolower( trim( $name ) );
+		foreach ( $map as $a ) {
+			if ( strtolower( $a['name'] ) === $name ) {
+				return $a;
+			}
+		}
+		return null;
+	}
+
+	private static function abilityByClass( array $map, string $class ): ?array {
+		$class = strtolower( trim( $class ) );
+		foreach ( $map as $a ) {
+			if ( strtolower( $a['class'] ) === $class ) {
+				return $a;
+			}
+		}
+		return null;
+	}
+
+	/** Local URL of the (main-namespace) wiki page for an ability, or null. */
+	private static function abilityPageUrl( string $name ): ?string {
+		$title = \Title::newFromText( $name );
+		return $title ? $title->getLinkURL() : null;
+	}
+
+	private static function abilitySlug( string $name ): string {
+		$slug = preg_replace( '/[^a-z0-9]+/', '-', strtolower( $name ) );
+		return trim( (string)$slug, '-' );
+	}
+
+	/** Curated key stats (label => value) for an ability's card. */
+	private static function abilityStats( array $row ): array {
+		$props = is_array( $row['properties'] ?? null ) ? $row['properties'] : [];
+		// Cast-timing noise that clutters a wiki card without adding value.
+		$deny = [
+			'AbilityCastDelay' => 1, 'AbilityChannelTime' => 1,
+			'AbilityPostCastDuration' => 1, 'AbilityChargeDelay' => 1,
+		];
+		$out = [];
+		foreach ( $props as $key => $p ) {
+			if ( !is_array( $p ) || isset( $deny[$key] ) || empty( $p['label'] ) ) {
+				continue;
+			}
+			$val = self::fmtAbilityValue( $p );
+			if ( $val === null ) {
+				continue;
+			}
+			$out[] = [ 'label' => (string)$p['label'], 'value' => $val ];
+			if ( count( $out ) >= 8 ) {
+				break;
+			}
+		}
+		return $out;
+	}
+
+	/** The three upgrade-tier descriptions, preferring the game's prose and
+	 * falling back to synthesising from the raw property upgrades. */
+	private static function abilityTiers( array $row ): array {
+		$desc = is_array( $row['description'] ?? null ) ? $row['description'] : [];
+		$upg  = is_array( $row['upgrades'] ?? null ) ? $row['upgrades'] : [];
+		$props = is_array( $row['properties'] ?? null ) ? $row['properties'] : [];
+		$tiers = [];
+		for ( $i = 1; $i <= 3; $i++ ) {
+			$text = self::cleanAbilityHtml( (string)( $desc["t{$i}_desc"] ?? '' ) );
+			if ( $text === '' && isset( $upg[$i - 1]['property_upgrades'] ) ) {
+				$text = self::synthTier( $upg[$i - 1]['property_upgrades'], $props );
+			}
+			$tiers[] = $text;
+		}
+		return $tiers;
+	}
+
+	/** Build a "+bonus Label, …" string from an upgrade tier's property list. */
+	private static function synthTier( array $pus, array $props ): string {
+		$parts = [];
+		foreach ( $pus as $pu ) {
+			if ( !is_array( $pu ) ) {
+				continue;
+			}
+			$name = (string)( $pu['name'] ?? '' );
+			$label = !empty( $props[$name]['label'] ) ? (string)$props[$name]['label']
+				: self::prettyPropName( $name );
+			$bonus = $pu['bonus'] ?? '';
+			if ( is_numeric( $bonus ) ) {
+				$f = (float)$bonus;
+				$num = ( $f == floor( $f ) ) ? (string)(int)$f
+					: rtrim( rtrim( number_format( $f, 2, '.', '' ), '0' ), '.' );
+				$bstr = ( $f >= 0 ? '+' : '' ) . $num;
+			} else {
+				$bstr = (string)$bonus;
+			}
+			$parts[] = trim( $bstr . ' ' . $label );
+		}
+		return implode( ', ', array_filter( $parts ) );
+	}
+
+	/** Turn an internal property key like "AbilityCooldown" into "Cooldown". */
+	private static function prettyPropName( string $key ): string {
+		$s = preg_replace( '/^Ability/', '', $key );
+		$s = preg_replace( '/(?<=[a-z0-9])(?=[A-Z])/', ' ', $s );
+		return trim( $s );
+	}
+
+	/**
+	 * Format a property's display value: normalise trailing ".0", append the
+	 * unit (postfix or display_units), skip zero / disabled values, and avoid
+	 * doubling a unit the value already carries (e.g. "5m").
+	 */
+	private static function fmtAbilityValue( array $p ): ?string {
+		if ( !array_key_exists( 'value', $p ) ) {
+			return null;
+		}
+		$raw = $p['value'];
+		$valStr = is_string( $raw ) ? trim( $raw ) : (string)$raw;
+		if ( $valStr === '' ) {
+			return null;
+		}
+		if ( isset( $p['disable_value'] ) && $valStr === (string)$p['disable_value'] ) {
+			return null;
+		}
+		// Zero-ish ("0", "0m", "-0.0s") carries no information on a card.
+		if ( preg_match( '/^-?0(\.0+)?[a-z%]*$/i', $valStr ) ) {
+			return null;
+		}
+		if ( is_numeric( $valStr ) ) {
+			$f = (float)$valStr;
+			// A negative base stat is a "disabled" sentinel (e.g. -1 = no charge
+			// system), not a real magnitude — omit it.
+			if ( $f < 0 ) {
+				return null;
+			}
+			$valStr = ( $f == floor( $f ) ) ? (string)(int)$f
+				: rtrim( rtrim( number_format( $f, 2, '.', '' ), '0' ), '.' );
+		}
+		$postfix = '';
+		if ( !empty( $p['postfix'] ) ) {
+			$postfix = (string)$p['postfix'];
+		} elseif ( !empty( $p['display_units'] ) ) {
+			$u = strtolower( (string)$p['display_units'] );
+			if ( strpos( $u, 'percent' ) !== false ) {
+				$postfix = '%';
+			} elseif ( strpos( $u, 'meters' ) !== false ) {
+				$postfix = 'm';
+			} elseif ( strpos( $u, 'second' ) !== false ) {
+				$postfix = 's';
+			}
+		}
+		if ( $postfix !== '' && substr( $valStr, -strlen( $postfix ) ) === $postfix ) {
+			$postfix = '';
+		}
+		return $valStr . $postfix;
+	}
+
+	/** Sanitise an ability description/tier snippet: drop everything except the
+	 * game's <span class="highlight"> emphasis, and collapse whitespace. */
+	private static function cleanAbilityHtml( string $s ): string {
+		if ( $s === '' ) {
+			return '';
+		}
+		$s = strip_tags( $s, '<span>' );
+		$s = preg_replace( '/\s+/u', ' ', $s );
+		return trim( $s );
 	}
 }

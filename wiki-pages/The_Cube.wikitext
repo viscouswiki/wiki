@@ -1,0 +1,12 @@
+<deadlockability name="The Cube" />
+
+'''The Cube''' encases a target in a block of restorative goo. The trapped unit is protected from damage and rapidly regenerates health, but cannot act while cubed.
+
+== How to use it ==
+* '''On an ally (or yourself):''' a panic button — a cubed teammate takes no damage and heals while the enemy team is forced to wait out the duration.
+* '''On an enemy:''' takes a key target out of a fight for its duration, buying your team a numbers advantage (they heal too, so time it well).
+* Higher tiers add move speed, more health regen, longer duration, and eventually strip debuffs and cut the cooldown.
+
+See the full kit on the [[Abilities]] page.
+
+[[Category:Abilities]]

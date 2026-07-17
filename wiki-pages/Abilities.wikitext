@@ -1,0 +1,18 @@
+Viscous is a spirit-scaling brawler whose entire kit is built around goo — puddles of it, cubes of it, and a giant ball of it. His four abilities give him wave-clear, a unique protect/disable button, long-range disruption, and a high-impact engage ultimate.
+
+<deadlockabilityindex />
+
+== The kit ==
+Click any ability above for its full stats and upgrade tiers.
+
+* '''[[Splatter]]''' — thrown goo that damages and leaves slowing puddles.
+* '''[[The Cube]]''' — encases a target in restorative goo, protecting and healing them while they can't act.
+* '''[[Puddle Punch]]''' — a long-range fist that punches and slows everyone in an area.
+* '''[[Goo Ball]]''' (ultimate) — morph into a rolling ball that stuns and shrugs off damage.
+
+== See also ==
+* [[Viscous]] — the hero overview
+* [[:Category:Builds|Builds]] — recommended item builds
+* [[Guides]] — how to play Viscous
+
+[[Category:Abilities]]

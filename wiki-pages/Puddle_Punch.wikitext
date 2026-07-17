@@ -1,0 +1,12 @@
+<deadlockability name="Puddle Punch" />
+
+'''Puddle Punch''' materialises a giant fist that strikes everyone in a target area, dealing damage and slowing them.
+
+== How to use it ==
+* A long-range engage and disruption tool: open a fight, interrupt channels, or peel for a teammate from across a skirmish.
+* Pairs naturally with '''[[Splatter]]''' — slowed targets are far easier to catch in the punch.
+* Tier upgrades add a second charge and damage, then radius and lifesteal, and finally a big cooldown cut with heavy-melee damage.
+
+See the full kit on the [[Abilities]] page.
+
+[[Category:Abilities]]

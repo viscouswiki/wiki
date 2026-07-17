@@ -1,0 +1,12 @@
+<deadlockability name="Goo Ball" />
+
+'''Goo Ball''' is Viscous's ultimate. He morphs into a massive rolling ball of goo that deals damage and stuns enemies it hits, while gaining bonus move speed and heavy resistances.
+
+== How to use it ==
+* Your primary engage and teamfight disruption: roll into the enemy backline to stun and scatter them.
+* The resistances make you very hard to kill mid-roll, so dive with confidence and body-block for your team.
+* Tier upgrades add damage and resistances, then extra duration and a longer stun.
+
+See the full kit on the [[Abilities]] page.
+
+[[Category:Abilities]]
