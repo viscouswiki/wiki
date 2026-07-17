@@ -36,7 +36,7 @@
 			x: rand( 0, vw() ),        // viewport-x (no horizontal scroll on the wiki)
 			y: y,                      // document-y
 			r: rand( 3, 11 ),
-			speed: rand( 9, 30 ),      // px/sec upward
+			speed: rand( 4.5, 15 ),    // px/sec upward
 			drift: rand( 4, 12 ),      // horizontal sway amplitude
 			phase: rand( 0, Math.PI * 2 ),
 			omega: rand( 0.3, 0.9 ),   // sway speed
@@ -50,7 +50,7 @@
 			document.body ? document.body.scrollHeight : 0,
 			window.innerHeight
 		);
-		var target = Math.min( 240, Math.max( 24, Math.round( docH / 34 ) ) );
+		var target = Math.min( 480, Math.max( 48, Math.round( docH / 17 ) ) );
 		bubbles = [];
 		for ( var i = 0; i < target; i++ ) {
 			bubbles.push( makeBubble( rand( 0, docH ) ) );
@@ -107,7 +107,7 @@
 				b.y = docH + rand( 0, 60 );
 				b.x = rand( 0, vw() );
 				b.r = rand( 3, 11 );
-				b.speed = rand( 9, 30 );
+				b.speed = rand( 4.5, 15 );
 				b.alpha = rand( 0.12, 0.32 );
 			}
 		}
