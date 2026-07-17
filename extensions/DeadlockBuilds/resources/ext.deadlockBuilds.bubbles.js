@@ -30,8 +30,36 @@
 
 	var R_MIN = 2.5, R_MAX = 12;
 
+	// Depth colouring: a bubble's "depth" (0 = far, 1 = near) blends its hue from
+	// a dark, muted green (far back) to bright mint (up front), and also scales
+	// its opacity — so the field reads as layered rather than flat.
+	var FAR_LIGHT = [ 72, 150, 112 ], NEAR_LIGHT = [ 190, 255, 218 ];
+	var FAR_MID = [ 38, 106, 78 ], NEAR_MID = [ 96, 226, 160 ];
+
+	function mix( a, b, t ) {
+		return [
+			Math.round( a[ 0 ] + ( b[ 0 ] - a[ 0 ] ) * t ),
+			Math.round( a[ 1 ] + ( b[ 1 ] - a[ 1 ] ) * t ),
+			Math.round( a[ 2 ] + ( b[ 2 ] - a[ 2 ] ) * t )
+		];
+	}
+
+	function rgba( c, a ) {
+		return 'rgba(' + c[ 0 ] + ',' + c[ 1 ] + ',' + c[ 2 ] + ',' + a + ')';
+	}
+
 	function vw() {
 		return window.innerWidth || document.documentElement.clientWidth || 1200;
+	}
+
+	// Assign the depth-derived look (hue, opacity, highlight tint, type).
+	function styleFor( b ) {
+		var depth = rand( 0, 1 );
+		b.depth = depth;
+		b.alpha = rand( 0.14, 0.34 ) * ( 0.45 + 0.55 * depth );
+		b.light = mix( FAR_LIGHT, NEAR_LIGHT, depth );
+		b.mid = mix( FAR_MID, NEAR_MID, depth );
+		b.type = pickType();
 	}
 
 	/**
@@ -50,12 +78,13 @@
 		return Math.random() < 0.5 ? 'shiny' : 'soft';
 	}
 
-	// Soft glowing blob — the original ambient look.
-	function drawSoft( ctx, x, y, r, alpha ) {
+	// Soft glowing blob — the original ambient look, tinted by depth.
+	function drawSoft( ctx, b, x, y ) {
+		var r = b.r, a = b.alpha;
 		var g = ctx.createRadialGradient( x, y, 0, x, y, r );
-		g.addColorStop( 0, 'rgba(180,255,212,' + alpha + ')' );
-		g.addColorStop( 0.55, 'rgba(90,220,150,' + ( alpha * 0.34 ) + ')' );
-		g.addColorStop( 1, 'rgba(90,220,150,0)' );
+		g.addColorStop( 0, rgba( b.light, a ) );
+		g.addColorStop( 0.55, rgba( b.mid, a * 0.34 ) );
+		g.addColorStop( 1, rgba( b.mid, 0 ) );
 		ctx.fillStyle = g;
 		ctx.beginPath();
 		ctx.arc( x, y, r, 0, Math.PI * 2 );
@@ -64,13 +93,15 @@
 
 	// A more "real" bubble: near-hollow body with a bright rim and a small
 	// specular highlight toward the upper-left, like light catching a bubble.
-	function drawShiny( ctx, x, y, r, alpha ) {
-		// Body: faint inside, brightening to a glassy rim.
+	// Hue and opacity come from depth; the highlight stays white up front but
+	// tints toward the bubble's own green as it recedes.
+	function drawShiny( ctx, b, x, y ) {
+		var r = b.r, a = b.alpha;
 		var body = ctx.createRadialGradient( x, y, r * 0.2, x, y, r );
-		body.addColorStop( 0, 'rgba(150,240,196,' + ( alpha * 0.10 ) + ')' );
-		body.addColorStop( 0.74, 'rgba(120,235,182,' + ( alpha * 0.16 ) + ')' );
-		body.addColorStop( 0.9, 'rgba(205,255,228,' + ( alpha * 0.85 ) + ')' );
-		body.addColorStop( 1, 'rgba(120,235,182,0)' );
+		body.addColorStop( 0, rgba( b.mid, a * 0.10 ) );
+		body.addColorStop( 0.74, rgba( b.mid, a * 0.16 ) );
+		body.addColorStop( 0.9, rgba( b.light, a * 0.85 ) );
+		body.addColorStop( 1, rgba( b.mid, 0 ) );
 		ctx.fillStyle = body;
 		ctx.beginPath();
 		ctx.arc( x, y, r, 0, Math.PI * 2 );
@@ -78,14 +109,15 @@
 
 		// Crisp thin rim for a rounder, glassier edge.
 		ctx.lineWidth = Math.max( 0.6, r * 0.07 );
-		ctx.strokeStyle = 'rgba(215,255,232,' + Math.min( 0.7, alpha * 1.6 ) + ')';
+		ctx.strokeStyle = rgba( b.light, Math.min( 0.7, a * 1.6 ) );
 		ctx.stroke();
 
 		// Specular highlight dot near the top-left.
 		var hx = x - r * 0.33, hy = y - r * 0.33, hr = r * 0.4;
+		var hCol = mix( b.light, [ 255, 255, 255 ], 0.35 + 0.65 * b.depth );
 		var hi = ctx.createRadialGradient( hx, hy, 0, hx, hy, hr );
-		hi.addColorStop( 0, 'rgba(255,255,255,' + Math.min( 0.92, alpha * 2.6 ) + ')' );
-		hi.addColorStop( 1, 'rgba(255,255,255,0)' );
+		hi.addColorStop( 0, rgba( hCol, Math.min( 0.92, a * 2.6 ) ) );
+		hi.addColorStop( 1, rgba( hCol, 0 ) );
 		ctx.fillStyle = hi;
 		ctx.beginPath();
 		ctx.arc( hx, hy, hr, 0, Math.PI * 2 );
@@ -94,17 +126,17 @@
 
 	function makeBubble( y ) {
 		var r = rand( R_MIN, R_MAX );
-		return {
+		var b = {
 			x: rand( 0, vw() ),          // viewport-x (no horizontal scroll on the wiki)
 			y: y,                        // document-y
 			r: r,
 			speed: speedFor( r ),        // px/sec upward — bigger rises faster
 			drift: rand( 3, 6 ) + r * 0.5, // bigger bubbles wobble a touch more
 			phase: rand( 0, Math.PI * 2 ),
-			omega: rand( 0.3, 0.9 ),     // sway speed
-			alpha: rand( 0.12, 0.32 ),
-			type: pickType()
+			omega: rand( 0.3, 0.9 )      // sway speed
 		};
+		styleFor( b );                   // depth: hue, opacity, highlight, type
+		return b;
 	}
 
 	function updateDocH() {
@@ -209,8 +241,7 @@
 				b.r = rand( R_MIN, R_MAX );
 				b.speed = speedFor( b.r );
 				b.drift = rand( 3, 6 ) + b.r * 0.5;
-				b.alpha = rand( 0.12, 0.32 );
-				b.type = pickType();
+				styleFor( b );
 			}
 		}
 
@@ -237,9 +268,9 @@
 					continue;
 				}
 				if ( b.type === 'shiny' ) {
-					drawShiny( ctx, lx, ly, b.r, b.alpha );
+					drawShiny( ctx, b, lx, ly );
 				} else {
-					drawSoft( ctx, lx, ly, b.r, b.alpha );
+					drawSoft( ctx, b, lx, ly );
 				}
 			}
 		}
