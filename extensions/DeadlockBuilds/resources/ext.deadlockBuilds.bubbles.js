@@ -148,8 +148,17 @@
 		);
 	}
 
+	function isMobile() {
+		return ( window.innerWidth || document.documentElement.clientWidth || 1200 ) <= 640;
+	}
+
 	function targetCount() {
-		return Math.min( 480, Math.max( 48, Math.round( docH / 17 ) ) );
+		var n = Math.round( docH / 17 );
+		if ( isMobile() ) {
+			// Halve the field on phones — lighter on smaller screens and GPUs.
+			return Math.min( 240, Math.max( 24, Math.round( n / 2 ) ) );
+		}
+		return Math.min( 480, Math.max( 48, n ) );
 	}
 
 	function seed() {
