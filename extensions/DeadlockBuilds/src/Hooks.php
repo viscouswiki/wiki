@@ -1077,6 +1077,20 @@ class Hooks {
 		return ( $s !== '' && preg_match( '/\p{L}/u', $s ) ) ? $s : '';
 	}
 
+	/**
+	 * Some items ship without a localised display name — the API returns the raw
+	 * class identifier ("upgrade_stabilizer") instead. Turn those into a readable
+	 * title ("Stabilizer"); leave real names (which have spaces/capitals) alone.
+	 */
+	private static function prettyItemName( string $name ): string {
+		if ( !preg_match( '/^[a-z0-9_]+$/', $name ) ) {
+			return $name;
+		}
+		$s = preg_replace( '/^upgrade_/', '', $name );
+		$s = trim( ucwords( str_replace( '_', ' ', $s ) ) );
+		return $s !== '' ? $s : $name;
+	}
+
 	private static function slotClass( string $slot ): string {
 		$slot = strtolower( $slot );
 		if ( $slot === 'weapon' || $slot === 'vitality' || $slot === 'spirit' ) {
@@ -1134,7 +1148,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v5' ),
+			$cache->makeKey( 'deadlockbuilds-assets', $kind, 'v6' ),
 			$ttl,
 			static function ( $old, &$setTtl ) use ( $kind ) {
 				$base = rtrim( self::config( 'DeadlockBuildsApiBase', self::DEFAULT_API ), '/' );
@@ -1154,7 +1168,7 @@ class Hooks {
 						$img = $row['shop_image_webp'] ?? $row['shop_image']
 							?? $row['image_webp'] ?? $row['image'] ?? '';
 						$map[$row['id']] = [
-							'name'   => (string)( $row['name'] ?? ( '#' . $row['id'] ) ),
+							'name'   => self::prettyItemName( (string)( $row['name'] ?? ( '#' . $row['id'] ) ) ),
 							'cost'   => $row['cost'] ?? null,
 							'slot'   => (string)( $row['item_slot_type'] ?? '' ),
 							'tier'   => $row['item_tier'] ?? null,
@@ -1186,7 +1200,7 @@ class Hooks {
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
 		$ttl = (int)self::config( 'DeadlockBuildsAssetTtl', 86400 );
 		$value = $cache->getWithSetCallback(
-			$cache->makeKey( 'deadlockbuilds-nameindex', 'v4' ),
+			$cache->makeKey( 'deadlockbuilds-nameindex', 'v5' ),
 			$ttl,
 			static function ( $old, &$setTtl ) {
 				$items = self::assetMap( 'items' );
