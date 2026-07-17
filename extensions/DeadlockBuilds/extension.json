@@ -1,6 +1,6 @@
 {
 	"name": "DeadlockBuilds",
-	"version": "0.8.0",
+	"version": "0.9.0",
 	"author": [
 		"Viscous Wiki"
 	],
@@ -39,6 +39,11 @@
 		"ext.deadlockBuilds.share": {
 			"scripts": [
 				"ext.deadlockBuilds.share.js"
+			]
+		},
+		"ext.deadlockBuilds.bubbles": {
+			"scripts": [
+				"ext.deadlockBuilds.bubbles.js"
 			]
 		}
 	},

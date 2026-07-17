@@ -244,6 +244,11 @@ class Hooks {
 	 * and art; everything else falls back to the wiki title + logo.
 	 */
 	public static function onBeforePageDisplay( $out, $skin ): void {
+		// Page-wide goo-bubble layer: styles define the per-card <canvas>, the
+		// script drives the shared upward-drifting field. Loaded everywhere; the
+		// script is a no-op on pages without cards.
+		$out->addModuleStyles( [ 'ext.deadlockBuilds' ] );
+		$out->addModules( [ 'ext.deadlockBuilds.bubbles' ] );
 		try {
 			$title = $out->getTitle();
 			if ( !$title ) {

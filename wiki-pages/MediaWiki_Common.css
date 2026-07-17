@@ -33,25 +33,16 @@
   text-align: center;
   overflow: hidden;
 }
-/* Sparse goo bubbles drifting behind the hero, matching the feature cards. */
-.vw-hero::after {
-  content: "";
+/* Goo bubbles are now drawn by the shared page-wide bubble layer
+   (ext.deadlockBuilds.bubbles): a per-card <canvas> that floats one continuous
+   field of bubbles up the page, visible only inside cards. */
+canvas.vw-bubbles {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: -1;
   pointer-events: none;
-  background-repeat: no-repeat;
-  background-image:
-    radial-gradient(circle, rgba(175, 255, 208, 0.26), rgba(90, 220, 150, 0.09) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.20), rgba(90, 220, 150, 0.07) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.24), rgba(90, 220, 150, 0.08) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.18), rgba(90, 220, 150, 0.06) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.26), rgba(90, 220, 150, 0.09) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.20), rgba(90, 220, 150, 0.07) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.22), rgba(90, 220, 150, 0.08) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.18), rgba(90, 220, 150, 0.06) 55%, transparent 70%);
-  background-position: 7% 34%, 19% 72%, 32% 20%, 46% 62%, 61% 26%, 73% 74%, 86% 36%, 94% 66%;
-  background-size: 24px 24px, 13px 13px, 17px 17px, 28px 28px, 10px 10px, 21px 21px, 14px 14px, 18px 18px;
 }
 /* Soft drifting glow across the banner. */
 .vw-hero::before {
@@ -147,38 +138,8 @@
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.42);
   text-decoration: none;
 }
-/* A handful of sparse translucent "goo" bubbles per card, evoking Viscous's
-   green cube. Sits above the card gradient but behind the text (z-index:-1
-   inside the card's own stacking context), clipped to the rounded corners.
-   nth-child variants scatter them differently on each card. */
-.vw-cards a::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-repeat: no-repeat;
-  background-image:
-    radial-gradient(circle, rgba(175, 255, 208, 0.30), rgba(90, 220, 150, 0.10) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.24), rgba(90, 220, 150, 0.08) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.26), rgba(90, 220, 150, 0.09) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.20), rgba(90, 220, 150, 0.07) 55%, transparent 70%),
-    radial-gradient(circle, rgba(175, 255, 208, 0.28), rgba(90, 220, 150, 0.10) 55%, transparent 70%);
-  background-position: 16% 26%, 74% 20%, 41% 73%, 88% 62%, 60% 44%;
-  background-size: 16px 16px, 10px 10px, 22px 22px, 13px 13px, 8px 8px;
-}
-.vw-cards a:nth-child(2n)::before {
-  background-position: 82% 30%, 24% 60%, 55% 17%, 12% 84%, 68% 78%;
-  background-size: 12px 12px, 20px 20px, 9px 9px, 16px 16px, 11px 11px;
-}
-.vw-cards a:nth-child(3n)::before {
-  background-position: 30% 20%, 84% 74%, 63% 50%, 18% 66%, 46% 88%;
-  background-size: 18px 18px, 11px 11px, 8px 8px, 14px 14px, 22px 22px;
-}
-.vw-cards a:nth-child(5n)::before {
-  background-position: 70% 34%, 20% 30%, 48% 82%, 90% 78%, 36% 54%;
-  background-size: 14px 14px, 9px 9px, 20px 20px, 12px 12px, 16px 16px;
-}
+/* Per-card goo bubbles are drawn by the shared page-wide bubble layer; each
+   card just hosts a clipped <canvas> (see canvas.vw-bubbles above). */
 .vw-card-ico {
   font-size: 1.75em;
   line-height: 1;
