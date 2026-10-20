@@ -1,6 +1,6 @@
 {
 	"name": "DeadlockBuilds",
-	"version": "0.9.0",
+	"version": "0.11.0",
 	"author": [
 		"Viscous Wiki"
 	],
@@ -44,6 +44,14 @@
 		"ext.deadlockBuilds.bubbles": {
 			"scripts": [
 				"ext.deadlockBuilds.bubbles.js"
+			]
+		},
+		"ext.deadlockBuilds.squid": {
+			"scripts": [
+				"ext.deadlockBuilds.squid.js"
+			],
+			"dependencies": [
+				"mediawiki.util"
 			]
 		}
 	},

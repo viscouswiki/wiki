@@ -91,3 +91,22 @@ $wgMessageCacheType = CACHE_DB;
 
 // ---- Behind the Cloudflare tunnel (TLS terminated at the edge) -----------
 $wgServer = 'https://viscous.wiki';
+
+// ---- Analytics: self-hosted Umami (FOSS) at viscous.wiki/analytics -------
+// Injects the privacy-friendly tracking script on every page view. The website
+// id is public by design (it ships in the client-side tag regardless), so it's
+// fine to keep here. No cookies; nothing to consent to.
+$wgHooks['BeforePageDisplay'][] = static function ( $out, $skin ) {
+	// Don't count admin traffic: skip the tracker for sysops (you, browsing your
+	// own wiki while logged in). Logged-out readers are still counted normally.
+	$groups = MediaWiki\MediaWikiServices::getInstance()
+		->getUserGroupManager()->getUserEffectiveGroups( $out->getUser() );
+	if ( in_array( 'sysop', $groups, true ) ) {
+		return;
+	}
+	$out->addHeadItem(
+		'umami-analytics',
+		'<script defer src="/analytics/script.js" '
+			. 'data-website-id="8fffe8d0-0934-473b-b650-498a14b260a9"></script>'
+	);
+};

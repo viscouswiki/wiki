@@ -1,1 +1,9 @@
-Pages for each of Viscous's abilities. See '''[[Abilities]]''' for the kit overview.
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Abilities</div>
+<div class="vw-cat-sub">Viscous's full kit — one page per ability, each with live stats, upgrade tiers, and a gameplay clip. See [[Abilities]] for the overview.</div>
+<div class="vw-cat-nav">[[Abilities|Kit overview]] [[:Category:Builds|Builds]] [[:Category:Items|Items]]</div>
+</div>
+
+<deadlockabilityindex />
+
+__NOTOC__

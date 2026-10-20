@@ -1,6 +1,9 @@
-'''Items''' collects every purchasable Deadlock item, one page each. Each item page shows live stats — tier, slot, souls cost, and effects — pulled from deadlock-api.com via the <code><nowiki><deadlockitem></nowiki></code> tag, so they stay current across patches.
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Items</div>
+<div class="vw-cat-sub">Every purchasable Deadlock item, one page each — live tier, slot, souls cost, and effects, straight from the current patch. Item icons on a build link here.</div>
+<div class="vw-cat-nav">[[:Category:Builds|Builds]] [[:Category:Abilities|Abilities]] [[:Category:Keybinds|Keybinds]]</div>
+</div>
 
-Items on a build page ([[:Category:Builds|builds]]) link here when you click their icon.
-
-== Browse items ==
 <deadlockitemindex />
+
+__NOTOC__

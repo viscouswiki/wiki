@@ -13,7 +13,11 @@
 ( function () {
 	'use strict';
 
-	var SELECTOR = '.vw-hero, .vw-cards a, .dlb-index-card';
+	var SELECTOR = '.vw-hero, .vw-cards a, .dlb-index-card, .dlb-ab-tile, ' +
+		'.dlb-build-card, .dlb-item-card, .dlb-itemindex, .dlb-ability-card, ' +
+		'.vw-squid-hero, .vw-cat-hero, ' +
+		'body.page-Category_Keybinds .mw-category li a, ' +
+		'body.page-Category_Videos .mw-category li a';
 	var reduce = window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
 
 	var cards = [];

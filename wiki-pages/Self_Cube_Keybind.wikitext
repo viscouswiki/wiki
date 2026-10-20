@@ -1,0 +1,11 @@
+A one-key '''self cube''': hold the alt-cast modifier and cast [[The Cube]] on yourself in a single press. Paste into your autoexec / console (rebind <code>e</code> to any key you like):
+
+<pre>
+alias +quickcube " +in_alt_cast_modifier; +in_ability2;"
+alias -quickcube " -in_alt_cast_modifier; -in_ability2;"
+bind e "+quickcube"
+</pre>
+
+<youtube id="4afb9NFHTGc" title="selfcube tutorial speedrun — Pharma" />
+
+[[Category:Keybinds]]

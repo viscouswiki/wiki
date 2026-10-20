@@ -1,0 +1,7 @@
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Keybinds</div>
+<div class="vw-cat-sub">Console binds and alias scripts for [[Viscous]] — paste them into your autoexec or the in-game console.</div>
+<div class="vw-cat-nav">[[Getting Started|Getting Started]] [[Guides|Guides]] [[:Category:Builds|Builds]]</div>
+</div>
+
+__NOTOC__

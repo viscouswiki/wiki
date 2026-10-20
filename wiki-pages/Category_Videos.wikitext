@@ -1,0 +1,7 @@
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Videos</div>
+<div class="vw-cat-sub">Clips and media for [[Viscous]]. Tag any page with <code><nowiki>[[Category:Videos]]</nowiki></code> to have it listed here.</div>
+<div class="vw-cat-nav">[[Guides|Guides]] [[:Category:Builds|Builds]] [[:Category:Keybinds|Keybinds]]</div>
+</div>
+
+__NOTOC__

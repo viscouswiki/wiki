@@ -181,3 +181,315 @@ canvas.vw-bubbles {
   .vw-cards { grid-template-columns: 1fr; }
   .vw-hero-title { font-size: 1.7em; }
 }
+
+/* ============================================================
+ * Category landing pages (Builds / Meta builds) — a compact hero
+ * header above the custom <deadlockbuildindex> card grid. The raw
+ * MediaWiki auto-listing is hidden in favour of the cards.
+ * ============================================================ */
+.vw-cat-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 0 0 1.4em;
+  padding: 30px 30px 26px;
+  border-radius: 18px;
+  border: 1px solid #26342b;
+  background:
+    radial-gradient(120% 150% at 100% -30%, rgba(57, 255, 136, 0.16), transparent 55%),
+    linear-gradient(180deg, #16211a, #0d130f);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.vw-cat-hero > * { position: relative; z-index: 1; }
+.vw-cat-title {
+  font-size: clamp(2em, 5vw, 2.9em);
+  font-weight: 800;
+  line-height: 1.05;
+  margin: 0;
+  background: linear-gradient(92deg, #eafff2 10%, #39ff88 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(57, 255, 136, 0.2);
+}
+.vw-cat-sub {
+  margin: 9px 0 0;
+  max-width: 660px;
+  color: #b9d8c6;
+  font-size: 1.05em;
+  line-height: 1.5;
+}
+.vw-cat-nav {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 10px;
+  font-size: 0.9em;
+}
+.vw-cat-nav p { display: contents; }
+.vw-cat-nav a {
+  color: #cfeede;
+  background: #17231b;
+  border: 1px solid #33473b;
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.13s ease, color 0.13s ease, transform 0.13s ease;
+}
+.vw-cat-nav a:hover {
+  color: #eafff2;
+  border-color: rgba(57, 255, 136, 0.55);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.vw-cat-foot {
+  margin-top: 1.4em;
+  color: #7f9a8a;
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+.vw-cat-foot a { color: #39ff88; }
+/* Drop MediaWiki's raw auto-generated listing (subcategories + "Pages in
+   category" bullets) on the pages that carry a custom card index instead. */
+body.page-Category_Builds .mw-category-generated,
+body.page-Category_Meta_builds .mw-category-generated,
+body.page-Category_Items .mw-category-generated,
+body.page-Category_Abilities .mw-category-generated { display: none; }
+/* Let the build-card grid fill the full content width (matching the hero
+   above it) instead of the default 900px cap, and cap it at 5 columns so the
+   cards stretch to fill the row rather than leaving an empty trailing track.
+   auto-fit collapses unused tracks, so fewer builds still stretch to fill.
+   Scoped to the category pages. */
+body.page-Category_Builds .dlb-index,
+body.page-Category_Meta_builds .dlb-index {
+  max-width: none;
+  grid-template-columns:
+    repeat(auto-fit, minmax(max(220px, calc((100% - 48px) / 5)), 1fr));
+}
+
+/* Home-linked category pages that have no custom card index (Keybinds, Videos):
+   same hero header, plus MediaWiki's default member listing restyled into a
+   matching card grid. Add a page's body-class here to opt it in. */
+body.page-Category_Keybinds .mw-category-generated h2,
+body.page-Category_Videos .mw-category-generated h2,
+body.page-Category_Keybinds .mw-category-generated > p,
+body.page-Category_Videos .mw-category-generated > p,
+body.page-Category_Keybinds #mw-pages > p,
+body.page-Category_Videos #mw-pages > p,
+body.page-Category_Keybinds .mw-category-group > h3,
+body.page-Category_Videos .mw-category-group > h3 { display: none; }
+body.page-Category_Keybinds .mw-category,
+body.page-Category_Videos .mw-category {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 0.4em 0 1em;
+  column-count: initial;
+}
+body.page-Category_Keybinds .mw-category-group,
+body.page-Category_Videos .mw-category-group,
+body.page-Category_Keybinds .mw-category-group ul,
+body.page-Category_Videos .mw-category-group ul { display: contents; }
+body.page-Category_Keybinds .mw-category li,
+body.page-Category_Videos .mw-category li { margin: 0; list-style: none; }
+body.page-Category_Keybinds .mw-category li a,
+body.page-Category_Videos .mw-category li a {
+  display: block;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid #26342b;
+  background: linear-gradient(180deg, #16211a, #121a15);
+  color: #39ff88;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.13s ease, border-color 0.13s ease, box-shadow 0.13s ease;
+}
+body.page-Category_Keybinds .mw-category li a:hover,
+body.page-Category_Videos .mw-category li a:hover {
+  transform: translateY(-3px);
+  border-color: rgba(57, 255, 136, 0.5);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.42);
+}
+
+/* ============================================================
+ * The Squid — a shrine to the viscord's favourite cephalopod.
+ * Purely visual: a bobbing centerpiece, the "pass the squid
+ * down" banner, and a gallery of squids. No lore, just squid.
+ * ============================================================ */
+/* The Squid page (and only that page) swims in a tiled field of rotating
+   squids. Scoped to the body page-class so it never leaks to other pages. */
+body.page-The_Squid {
+  background-image: url('https://media.viscous.wiki/squid/squid.gif');
+  background-repeat: repeat;
+  background-position: top center;
+}
+
+.vw-squid { max-width: 940px; margin: 0 auto; }
+
+/* --- Hero: the great glowing squid, bobbing in the deep --- */
+.vw-squid-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 460px;
+  padding: 40px 24px 48px;
+  border-radius: 20px;
+  border: 1px solid #26342b;
+  background:
+    radial-gradient(120% 120% at 50% 12%, rgba(150, 40, 70, 0.18), transparent 55%),
+    radial-gradient(130% 150% at 50% -20%, rgba(57, 255, 136, 0.12), transparent 55%),
+    linear-gradient(180deg, #14100f 0%, #0c1210 100%);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.vw-squid-orb {
+  position: relative;
+  z-index: 2;
+  width: min(320px, 74vw);
+  height: min(320px, 74vw);
+  background: url('https://media.viscous.wiki/squid/octopus3.png') no-repeat center / contain;
+  filter: drop-shadow(0 22px 26px rgba(0, 0, 0, 0.55))
+          drop-shadow(0 0 26px rgba(190, 60, 90, 0.35));
+  animation: vw-squid-bob 6s ease-in-out infinite alternate;
+}
+/* Pulsing halo behind the squid. */
+.vw-squid-orb::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 8% 4% 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(57, 255, 136, 0.28), rgba(150, 40, 70, 0.12) 55%, transparent 72%);
+  filter: blur(6px);
+  animation: vw-squid-halo 4.5s ease-in-out infinite alternate;
+}
+.vw-squid-title {
+  position: relative;
+  z-index: 2;
+  margin-top: 6px;
+  font-size: clamp(2.4em, 6vw, 4em);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  background: linear-gradient(92deg, #eafff2 6%, #39ff88 60%, #ff8fb0 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 34px rgba(57, 255, 136, 0.22);
+}
+@keyframes vw-squid-bob {
+  from { transform: translateY(-10px) rotate(-2.2deg); }
+  to   { transform: translateY(14px) rotate(2.4deg); }
+}
+@keyframes vw-squid-halo {
+  from { opacity: 0.55; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1.08); }
+}
+
+/* --- A slow swarm of little squids rising through the goo --- */
+.vw-squid-swarm { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.vw-sq-mini {
+  position: absolute;
+  bottom: -70px;
+  width: 52px;
+  height: 52px;
+  background: url('https://media.viscous.wiki/squid/squid.webp') no-repeat center / contain;
+  opacity: 0;
+  animation: vw-squid-rise 15s linear infinite;
+}
+.vw-sq-mini-1 { left: 8%;  width: 40px; height: 40px; animation-duration: 17s; animation-delay: 0s; }
+.vw-sq-mini-2 { left: 24%; width: 58px; height: 58px; animation-duration: 13s; animation-delay: -4s; }
+.vw-sq-mini-3 { left: 46%; width: 34px; height: 34px; animation-duration: 19s; animation-delay: -9s; }
+.vw-sq-mini-4 { left: 66%; width: 62px; height: 62px; animation-duration: 12s; animation-delay: -2s; }
+.vw-sq-mini-5 { left: 82%; width: 44px; height: 44px; animation-duration: 16s; animation-delay: -7s; }
+.vw-sq-mini-6 { left: 92%; width: 30px; height: 30px; animation-duration: 21s; animation-delay: -12s; }
+@keyframes vw-squid-rise {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12%  { opacity: 0.5; }
+  88%  { opacity: 0.5; }
+  100% { transform: translateY(-560px) rotate(220deg); opacity: 0; }
+}
+
+/* --- "Pass the squid down" banner --- */
+.vw-squid-pass {
+  height: 440px;
+  max-width: 400px;
+  margin: 22px auto 8px;
+  background: url('https://media.viscous.wiki/squid/PASS_IT.webp') no-repeat center / contain;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.5));
+  animation: vw-squid-pass 4s ease-in-out infinite alternate;
+}
+@keyframes vw-squid-pass {
+  from { transform: translateY(-6px); }
+  to   { transform: translateY(10px); }
+}
+
+/* --- Gallery: every squid, dim until you look at it --- */
+.vw-squid-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 1.6em 0 1em;
+}
+.vw-sq-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 1px solid #2a3a30;
+  background-color: #0d130f;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: grayscale(0.5) brightness(0.72);
+  transition: filter 0.28s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+.vw-sq-card:hover {
+  filter: none;
+  transform: translateY(-5px) scale(1.02);
+  border-color: rgba(57, 255, 136, 0.55);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 22px rgba(150, 40, 70, 0.25);
+  z-index: 1;
+}
+.vw-sq-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22px 12px 9px;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: #eafff2;
+  text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(6, 10, 8, 0.82));
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.vw-sq-card:hover .vw-sq-cap { opacity: 1; transform: translateY(0); }
+/* Individual squids. */
+.vw-sq-explode { background-image: url('https://media.viscous.wiki/squid/squid_explode_real.webp'); }
+.vw-sq-spin    { background-image: url('https://media.viscous.wiki/squid/squid.gif'); background-size: contain; filter: none; }
+.vw-sq-steam   { background-image: url('https://media.viscous.wiki/squid/1523112991388864552.webp'); background-size: contain; }
+.vw-sq-rem     { background-image: url('https://media.viscous.wiki/squid/rem_looking_at_squid.webp'); }
+.vw-sq-rem2    { background-image: url('https://media.viscous.wiki/squid/rem_squid_2.webp'); }
+.vw-sq-e1      { background-image: url('https://media.viscous.wiki/squid/1523112803471462440.webp'); background-size: contain; }
+.vw-sq-e2      { background-image: url('https://media.viscous.wiki/squid/1523112877916164277.webp'); background-size: contain; }
+.vw-sq-head    { background-image: url('https://media.viscous.wiki/squid/1523112917883682946.webp'); background-size: contain; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vw-squid-orb, .vw-squid-pass, .vw-squid-orb::before { animation: none; }
+  .vw-sq-mini { display: none; }
+}
+@media (max-width: 640px) {
+  .vw-squid-hero { min-height: 360px; }
+  .vw-squid-pass { height: 340px; }
+}

@@ -36,6 +36,43 @@ class Hooks {
 		$parser->setHook( 'deadlockabilityindex', [ self::class, 'renderAbilityIndex' ] );
 		$parser->setHook( 'deadlockrecent', [ self::class, 'renderRecent' ] );
 		$parser->setHook( 'deadlocksearch', [ self::class, 'renderSearch' ] );
+		$parser->setHook( 'youtube', [ self::class, 'renderYouTube' ] );
+	}
+
+	/**
+	 * <youtube id="VIDEOID"/> (or a full URL in id=) — a responsive, privacy-
+	 * enhanced YouTube embed. MediaWiki strips raw <iframe>, so this tag builds a
+	 * safe one from a validated 11-char video id.
+	 */
+	public static function renderYouTube( $input, array $args, Parser $parser, PPFrame $frame ) {
+		$raw = trim( (string)( $args['id'] ?? $args['video'] ?? $input ?? '' ) );
+		$id = self::youTubeId( $raw );
+		if ( $id === null ) {
+			return self::notice( 'error', 'Invalid or missing YouTube video id.' );
+		}
+		$title = isset( $args['title'] ) ? trim( (string)$args['title'] ) : 'YouTube video player';
+		$src = 'https://www.youtube-nocookie.com/embed/' . rawurlencode( $id );
+		$h = '<div class="dlb-yt"><iframe src="' . htmlspecialchars( $src ) . '"'
+			. ' title="' . htmlspecialchars( $title ) . '"'
+			. ' loading="lazy" frameborder="0" allowfullscreen'
+			. ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+			. ' referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+		return [ $h, 'markerType' => 'nowiki' ];
+	}
+
+	/** Extract an 11-char YouTube video id from a bare id or any common URL form. */
+	private static function youTubeId( string $s ): ?string {
+		$s = trim( $s );
+		if ( $s === '' ) {
+			return null;
+		}
+		if ( preg_match( '/^[A-Za-z0-9_-]{11}$/', $s ) ) {
+			return $s;
+		}
+		if ( preg_match( '#(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/|v/))([A-Za-z0-9_-]{11})#', $s, $m ) ) {
+			return $m[1];
+		}
+		return null;
 	}
 
 	/**
@@ -249,6 +286,8 @@ class Hooks {
 		// script is a no-op on pages without cards.
 		$out->addModuleStyles( [ 'ext.deadlockBuilds' ] );
 		$out->addModules( [ 'ext.deadlockBuilds.bubbles' ] );
+		// Dedicated squid button in the skin's persistent left rail.
+		$out->addModules( [ 'ext.deadlockBuilds.squid' ] );
 		try {
 			$title = $out->getTitle();
 			if ( !$title ) {
@@ -260,7 +299,20 @@ class Hooks {
 				. "item builds, and the current meta.";
 			$ogImage = 'https://media.viscous.wiki/branding/viscous-logo.png';
 
-			if ( $title->getNamespace() === NS_MAIN
+			// Featured pages with their own share art (keyed by prefixed title).
+			$featured = [
+				'The Squid' => [
+					'image' => 'https://media.viscous.wiki/squid/octopus3.png',
+					'desc'  => 'Pass the squid down.',
+				],
+			];
+			$fkey = $title->getPrefixedText();
+
+			if ( isset( $featured[$fkey] ) ) {
+				$ogImage = $featured[$fkey]['image'];
+				$ogDesc  = $featured[$fkey]['desc'];
+				$ogType  = 'article';
+			} elseif ( $title->getNamespace() === NS_MAIN
 				&& preg_match( '#^Builds/(?:meta/)?(\d+)$#', $title->getText(), $m )
 			) {
 				$b = self::fetchBuild( $m[1] );
@@ -381,23 +433,46 @@ class Hooks {
 				];
 			}
 			$total = count( $entries );
+			// metafirst: float builds that are also in Category:Meta builds to the
+			// top, keeping the usual order within each group.
+			$metaFirst = array_key_exists( 'metafirst', $args )
+				&& !in_array( strtolower( trim( (string)$args['metafirst'] ) ),
+					[ '0', 'false', 'no', 'off' ], true );
+			$metaCmp = static function ( $a, $b ) use ( $metaFirst ) {
+				if ( !$metaFirst ) {
+					return 0;
+				}
+				// Meta builds first...
+				$c = ( $b['hasMeta'] ? 1 : 0 ) <=> ( $a['hasMeta'] ? 1 : 0 );
+				if ( $c !== 0 ) {
+					return $c;
+				}
+				// ...and, among the meta builds, the most-liked first.
+				if ( $a['hasMeta'] ) {
+					return (int)( $b['build']['num_favorites'] ?? 0 )
+						<=> (int)( $a['build']['num_favorites'] ?? 0 );
+				}
+				return 0;
+			};
 			$order = self::parseOrderArg( $args['order'] ?? '' );
 			if ( $order ) {
 				// Manual order: build ids listed in `order` come first, in that
 				// sequence; anything unlisted follows alphabetically.
 				$last = count( $order );
-				usort( $entries, static function ( $a, $b ) use ( $order, $last ) {
+				usort( $entries, static function ( $a, $b ) use ( $order, $last, $metaCmp ) {
 					$pa = $order[$a['id']] ?? $last;
 					$pb = $order[$b['id']] ?? $last;
-					return ( $pa <=> $pb ) ?: strcasecmp( $a['name'], $b['name'] );
+					return $metaCmp( $a, $b )
+						?: ( ( $pa <=> $pb ) ?: strcasecmp( $a['name'], $b['name'] ) );
 				} );
 			} elseif ( $limit > 0 ) {
 				// Limited views (e.g. the home page) default to the freshest
 				// builds first — a higher page id is a more recently created page.
-				usort( $entries, static fn ( $a, $b ) =>
-					$b['title']->getArticleID() <=> $a['title']->getArticleID() );
+				usort( $entries, static fn ( $a, $b ) => $metaCmp( $a, $b )
+					?: ( $b['title']->getArticleID() <=> $a['title']->getArticleID() ) );
 			} else {
-				usort( $entries, static fn ( $a, $b ) => strcasecmp( $a['name'], $b['name'] ) );
+				usort( $entries, static fn ( $a, $b ) => $metaCmp( $a, $b )
+					?: strcasecmp( $a['name'], $b['name'] ) );
 			}
 			if ( $limit > 0 ) {
 				$entries = array_slice( $entries, 0, $limit );
@@ -772,7 +847,7 @@ class Hooks {
 		$desc    = trim( (string)( $build['description'] ?? '' ) );
 		$version = $build['version'] ?? null;
 
-		$h  = '<div class="deadlock-build">';
+		$h  = '<div class="deadlock-build dlb-build-card">';
 		$h .= self::soulDefs();
 
 		// Header: hero portrait + title + hero name.

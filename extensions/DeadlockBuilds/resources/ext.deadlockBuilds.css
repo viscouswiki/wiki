@@ -13,7 +13,7 @@
 	isolation: isolate;
 	overflow: hidden;
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 12px;
 	padding: 11px 13px;
 	border: 1px solid #26342b;
@@ -33,7 +33,98 @@ canvas.vw-bubbles {
 	height: 100%;
 	z-index: -1;
 	pointer-events: none;
+	/* Round the canvas to match its host card. Cards that also set
+	   overflow:hidden clip it anyway; the big content cards below do NOT
+	   (their hover popovers must overflow), so the canvas clips itself. */
+	border-radius: inherit;
 }
+
+/* Host the shared bubble field inside the large content cards (build pages,
+   item pages, item gallery, ability pages). These intentionally omit
+   overflow:hidden so item hover popovers can escape the card, so they rely
+   on the canvas's own border-radius to stay inside the rounded corners.
+   position + isolation give the z-index:-1 canvas a stacking context so it
+   paints above the card background but below the card's own content. */
+.deadlock-build.dlb-build-card,
+.deadlock-build.dlb-item-card,
+.deadlock-build.dlb-itemindex,
+.deadlock-build.dlb-ability-card {
+	position: relative;
+	isolation: isolate;
+}
+
+/* Responsive 16:9 YouTube embed (<youtube> tag). */
+.dlb-yt {
+	position: relative;
+	width: 100%;
+	max-width: none;
+	margin: 1em 0;
+	aspect-ratio: 16 / 9;
+	border-radius: 12px;
+	overflow: hidden;
+	border: 1px solid #26342b;
+	background: #0d130f;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.dlb-yt iframe {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+/* The Squid nav button — injected into Citizen's bottom-left rail
+   (.citizen-header__end) by ext.deadlockBuilds.squid.js. Sized to match the
+   rail's other 40px icon buttons. */
+.vw-squid-nav,
+.vw-viscord-nav {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	margin: 2px auto;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.vw-squid-nav:hover,
+.vw-viscord-nav:hover { background-color: rgba(57, 255, 136, 0.12); }
+.vw-squid-nav-icon,
+.vw-viscord-nav-icon {
+	width: 28px;
+	height: 28px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+	transition: transform 0.2s ease, filter 0.2s ease;
+}
+.vw-squid-nav:hover .vw-squid-nav-icon {
+	transform: scale(1.12) rotate(-6deg);
+	filter: drop-shadow(0 0 8px rgba(190, 60, 90, 0.7));
+}
+.vw-viscord-nav:hover .vw-viscord-nav-icon {
+	transform: scale(1.12);
+	filter: drop-shadow(0 0 8px rgba(57, 255, 136, 0.7));
+}
+.vw-squid-nav-active .vw-squid-nav-icon {
+	filter: drop-shadow(0 0 8px rgba(57, 255, 136, 0.75));
+}
+/* Fallback when the rail isn't present: a fixed bottom-left button. */
+.vw-squid-nav-fab {
+	position: fixed;
+	left: 12px;
+	bottom: 14px;
+	z-index: 50;
+	width: 46px;
+	height: 46px;
+	background: linear-gradient(180deg, #16211a, #121a15);
+	border: 1px solid #33473b;
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
 /* Leave room on the right so a long name never slides under the meta star. */
 .dlb-index-card-meta { padding-right: 26px; }
 .dlb-index-star {
@@ -96,9 +187,11 @@ canvas.vw-bubbles {
 	font-weight: 700;
 	color: #39ff88;
 	line-height: 1.2;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	/* Show the full title (wrap instead of truncating) and always reserve two
+	   lines so the meta/tags below line up whether a name is one line or two. */
+	white-space: normal;
+	overflow-wrap: anywhere;
+	min-height: 2.4em;
 }
 .dlb-index-meta {
 	font-size: 0.8em;
@@ -660,7 +753,7 @@ canvas.vw-bubbles {
 	list-style: none;
 	margin: 0.5em 0;
 	padding: 0;
-	max-width: 900px;
+	max-width: none;
 }
 .dlb-recent-item {
 	display: flex;
@@ -846,10 +939,12 @@ canvas.vw-bubbles {
 .deadlock-build.dlb-itemrow { padding: 0; border: 0; background: none; box-shadow: none; }
 
 /* Ability index grid (<deadlockabilityindex>). */
-.deadlock-build.dlb-ability-index { padding: 0; border: 0; background: none; box-shadow: none; }
+.deadlock-build.dlb-ability-index { padding: 0; border: 0; background: none; box-shadow: none; max-width: none; }
 .dlb-ability-index .dlb-ab-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	/* auto-fit (not auto-fill) collapses empty tracks so the tiles stretch to
+	   fill the full width and line up flush with the header above. */
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 	gap: 12px;
 }
 .dlb-ability-index .dlb-ab-tile {

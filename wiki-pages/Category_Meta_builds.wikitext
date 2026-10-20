@@ -1,7 +1,14 @@
-'''Meta builds''' are the current top Viscous builds. Visiting <code>/wiki/Builds/meta/&lt;build id&gt;</code> as an admin auto-creates the page here '''and''' a permanent canonical page at <code>Builds/&lt;build id&gt;</code>.
-
-When a build falls out of the meta, delete its <code>Builds/meta/…</code> page — the canonical <code>Builds/…</code> page (in [[:Category:Builds]]) stays as a permanent record.
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Meta Builds</div>
+<div class="vw-cat-sub">The current top-performing Viscous builds, updated as the meta shifts.</div>
+<div class="vw-cat-nav">[[:Category:Builds|← All builds]] [[:Category:Items|Items]] [[:Category:Abilities|Abilities]]</div>
+</div>
 
 <deadlockbuildindex category="Meta builds" />
 
+<!-- Editors: visiting /wiki/Builds/meta/<build id> as an admin auto-creates this
+page AND a permanent canonical page at Builds/<build id>. When a build leaves the
+meta, delete its Builds/meta/… page; the canonical Builds/… page stays as a record. -->
+
+__NOTOC__
 [[Category:Builds]]

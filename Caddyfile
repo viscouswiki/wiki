@@ -17,6 +17,13 @@
 		reverse_proxy discord-bot:8080
 	}
 
+	# Umami analytics (app UI + tracking script) — served under /analytics via
+	# the app's own BASE_PATH, so the prefix is passed through untouched.
+	@analytics path /analytics /analytics/*
+	handle @analytics {
+		reverse_proxy umami:3000
+	}
+
 	handle {
 		reverse_proxy mediawiki:80
 	}

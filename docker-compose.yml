@@ -91,6 +91,42 @@ services:
     expose:
       - "8080"
 
+  # Self-hosted, privacy-friendly analytics (FOSS, MIT). Served under
+  # viscous.wiki/analytics via Caddy; tracking script at /analytics/script.js.
+  umami-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env}
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  umami:
+    # Built from source so BASE_PATH is baked in at build time — the standalone
+    # Next.js build compiles the sub-path into routes/assets (a runtime env is
+    # ignored), which lets us serve the app under viscous.wiki/analytics.
+    build:
+      context: https://github.com/umami-software/umami.git
+      args:
+        BASE_PATH: /analytics
+    restart: unless-stopped
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in .env}
+    expose:
+      - "3000"
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -115,3 +151,4 @@ volumes:
   db-data:
   mw-images:
   discord-data:
+  umami-db-data:

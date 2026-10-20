@@ -1,21 +1,20 @@
 <div class="vw-hero">
 <div class="vw-hero-title">The Viscous Wiki</div>
 <div class="vw-hero-sub">Welcome to The Deep</div>
-<div class="vw-cta"><span class="vw-btn-primary">[[Getting Started|Get started]]</span> <span class="vw-btn-ghost">[[:Category:Builds|Browse builds]]</span></div>
+<div class="vw-cta"><span class="vw-btn-primary plainlinks">[https://discord.gg/viscord Join the Viscord]</span> <span class="vw-btn-ghost">[[:Category:Builds|Browse builds]]</span></div>
 <deadlocksearch placeholder="Search builds, items, abilities…" />
 </div>
 
 <div class="vw-cards">
-[[Viscous|<span class="vw-card-title">Viscous</span><span class="vw-card-desc">About the hero</span>]]
-[[Abilities|<span class="vw-card-title">Abilities</span><span class="vw-card-desc">His full kit, explained</span>]]
+[[Abilities|<span class="vw-card-title">Abilities</span><span class="vw-card-desc">His full kit</span>]]
+[[:Category:Meta builds|<span class="vw-card-title">Meta Builds</span><span class="vw-card-desc">Chosen by the Viscord</span>]]
 [[:Category:Builds|<span class="vw-card-title">Builds</span><span class="vw-card-desc">Items & recommended builds</span>]]
-[[Guides|<span class="vw-card-title">Guides</span><span class="vw-card-desc">How to play Viscous</span>]]
+[[:Category:Keybinds|<span class="vw-card-title">Keybinds</span><span class="vw-card-desc">Console binds & scripts</span>]]
 [[:Category:Videos|<span class="vw-card-title">Videos</span><span class="vw-card-desc">Clips & media</span>]]
-[[Getting Started|<span class="vw-card-title">Getting Started</span><span class="vw-card-desc">New here? Start here</span>]]
 </div>
 
-== Current meta builds ==
-<deadlockbuildindex category="Meta builds" limit="6" />
+== Top meta builds ==
+<deadlockbuildindex category="Meta builds" limit="4" metafirst />
 
 == Recently updated ==
 <deadlockrecent limit="6" />

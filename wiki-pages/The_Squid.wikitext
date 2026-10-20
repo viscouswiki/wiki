@@ -1,0 +1,24 @@
+<div class="vw-squid">
+
+<div class="vw-squid-hero">
+<div class="vw-squid-swarm" aria-hidden="true"><span class="vw-sq-mini vw-sq-mini-1"></span><span class="vw-sq-mini vw-sq-mini-2"></span><span class="vw-sq-mini vw-sq-mini-3"></span><span class="vw-sq-mini vw-sq-mini-4"></span><span class="vw-sq-mini vw-sq-mini-5"></span><span class="vw-sq-mini vw-sq-mini-6"></span></div>
+<div class="vw-squid-orb" role="img" aria-label="The Squid"></div>
+<div class="vw-squid-title">The Squid</div>
+</div>
+
+<div class="vw-squid-pass" role="img" aria-label="Pass the squid down"></div>
+
+<div class="vw-squid-gallery">
+<div class="vw-sq-card vw-sq-explode"><span class="vw-sq-cap">The squid, mid&#8209;detonation.</span></div>
+<div class="vw-sq-card vw-sq-spin"><span class="vw-sq-cap">The squid, in rotation.</span></div>
+<div class="vw-sq-card vw-sq-steam"><span class="vw-sq-cap">The squid, freshly steamed.</span></div>
+<div class="vw-sq-card vw-sq-rem"><span class="vw-sq-cap">A hero regards the squid.</span></div>
+<div class="vw-sq-card vw-sq-rem2"><span class="vw-sq-cap">The squid, after dark.</span></div>
+<div class="vw-sq-card vw-sq-e1"><span class="vw-sq-cap">The squid.</span></div>
+<div class="vw-sq-card vw-sq-e2"><span class="vw-sq-cap">The squid, adrift.</span></div>
+<div class="vw-sq-card vw-sq-head"><span class="vw-sq-cap">The squid, head&#8209;on.</span></div>
+</div>
+
+</div>
+
+__NOTOC__ __NOINDEX__

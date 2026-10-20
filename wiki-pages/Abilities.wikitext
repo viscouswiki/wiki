@@ -1,4 +1,8 @@
-Viscous is a spirit-scaling brawler whose entire kit is built around goo — puddles of it, cubes of it, and a giant ball of it. His four abilities give him wave-clear, a unique protect/disable button, long-range disruption, and a high-impact engage ultimate.
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Abilities</div>
+<div class="vw-cat-sub">Viscous is a spirit-scaling brawler whose entire kit is built around goo — puddles of it, cubes of it, and a giant ball of it: wave-clear, a unique protect/disable button, long-range disruption, and a high-impact engage ultimate.</div>
+<div class="vw-cat-nav">[[Viscous|The hero]] [[:Category:Builds|Builds]] [[:Category:Items|Items]] [[Guides|Guides]]</div>
+</div>
 
 <deadlockabilityindex />
 
@@ -16,3 +20,5 @@ Click any ability above for its full stats and upgrade tiers.
 * [[Guides]] — how to play Viscous
 
 [[Category:Abilities]]
+
+__NOTOC__

@@ -1,9 +1,11 @@
-'''Builds''' collects the current meta and community builds for [[Viscous]]. Each build has its own page with an item build order, ability leveling order, and playstyle notes.
+<div class="vw-cat-hero">
+<div class="vw-cat-title">Builds</div>
+<div class="vw-cat-sub">Meta and community builds for [[Viscous]] — each with its full item build order, ability leveling, and playstyle notes.</div>
+<div class="vw-cat-nav">[[:Category:Meta builds|★ Meta builds]] [[:Category:Items|Items]] [[:Category:Abilities|Abilities]]</div>
+</div>
 
-== Browse builds ==
-<deadlockbuildindex category="Builds" />
+<deadlockbuildindex category="Builds" metafirst />
 
-== Adding a build ==
-Create a new page named after the build, then paste the [[Template:Build|Build template]] at the top and fill in the sections. See [[Template:Build]] for the field reference. Every page using the template is listed here automatically.
+<div class="vw-cat-foot">To add one, create a page named after the build and paste the [[Template:Build|Build template]] at the top — every page using it is listed here automatically.</div>
 
-__EXPANDCONTENTS__
+__NOTOC__
